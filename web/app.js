@@ -30,7 +30,7 @@
 
   const COLORS = {
     compare: '#2a78d6', swap: '#d6336c', pivot: '#6250d6', final: '#1f8a4c',
-    bar: '#8d9bb0', barIn: '#55657c', barOut: '#d3dae3', ink: '#1d2633', ink3: '#6f7a8a', grid: '#e4e9ef',
+    bar: '#8d9bb0', barIn: '#55657c', barOut: '#d3dae3', ink: '#000000', ink3: '#000000', axis: '#6f7a8a', grid: '#e4e9ef',
   };
 
   // Validated categorical palette, assigned to each algorithm by a FIXED map
@@ -394,7 +394,7 @@
     const r = s.r;
     const moving = s.t === 'swap' || s.t === 'write';
     let out = '<svg viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">';
-    out += '<line x1="0" x2="' + W + '" y1="' + y0 + '" y2="' + y0 + '" stroke="' + COLORS.ink3 + '" stroke-width="1"/>';
+    out += '<line x1="0" x2="' + W + '" y1="' + y0 + '" y2="' + y0 + '" stroke="' + COLORS.axis + '" stroke-width="1"/>';
     for (let i = 0; i < n; i++) {
       let col = COLORS.bar;
       if (s.pv === i) col = COLORS.pivot;
@@ -405,7 +405,7 @@
       const yt = Math.min(y(v), y0), hh = Math.max(Math.abs(y(v) - y0), 1.5);
       const x = i * bw + gap / 2, w = Math.max(bw - gap, 0.6);
       out += '<rect x="' + x.toFixed(2) + '" y="' + yt.toFixed(2) + '" width="' + w.toFixed(2) + '" height="' + hh.toFixed(2)
-        + '" rx="' + Math.min(4, w / 4).toFixed(2) + '" fill="' + col + '"><title>a[' + i + '] = ' + v + '</title></rect>';
+        + '" fill="' + col + '"><title>a[' + i + '] = ' + v + '</title></rect>';
       if (labels) {
         const ty = v >= 0 ? yt - 6 : yt + hh + 14;
         const fs = n <= 20 ? 15 : 12;
@@ -514,7 +514,7 @@
         edges += '<line x1="' + cx(parent) + '" y1="' + (cy(parent) + 12) + '" x2="' + cx(n) + '" y2="' + (cy(n) - 12)
           + '" stroke="' + (visible ? '#9aa6b5' : '#e4e9ef') + '" stroke-width="1.5"/>';
       }
-      let fill = '#fff', stroke = '#d3dae3', textCol = '#b6c0cc';
+      let fill = '#fff', stroke = '#d3dae3', textCol = COLORS.ink;
       if (visible && !returned) { stroke = COLORS.compare; textCol = COLORS.ink; }
       if (returned) { fill = '#e2f3e9'; stroke = COLORS.final; textCol = COLORS.ink; }
       if (n.id === cur) { fill = '#efedfb'; stroke = COLORS.pivot; textCol = COLORS.ink; }
@@ -525,7 +525,7 @@
         let text = n.label;
         if (returned && n.v !== null && n.v !== 'done') text = n.label + '=' + n.v;
         if (text.length > 13) text = text.slice(0, 12) + '…';
-        nodes += '<g>' + title + '<rect x="' + (cx(n) - w / 2) + '" y="' + (cy(n) - 13) + '" width="' + w + '" height="26" rx="5" fill="' + fill
+        nodes += '<g>' + title + '<rect x="' + (cx(n) - w / 2) + '" y="' + (cy(n) - 13) + '" width="' + w + '" height="26" fill="' + fill
           + '" stroke="' + stroke + '" stroke-width="' + (n.id === cur ? 2.5 : 1.5) + '"/>'
           + '<text x="' + cx(n) + '" y="' + (cy(n) + 4) + '" text-anchor="middle" font-size="11" font-family="ui-monospace, Menlo, monospace" fill="' + textCol + '">'
           + esc(text) + '</text></g>';
@@ -547,18 +547,18 @@
     let out = '<svg viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">';
     for (let p = 0; p < 3; p++) {
       const cx = pegW * p + pegW / 2;
-      out += '<rect x="' + (cx - 4) + '" y="40" width="8" height="' + (base - 40) + '" rx="3" fill="#9aa6b5"/>';
+      out += '<rect x="' + (cx - 4) + '" y="40" width="8" height="' + (base - 40) + '" fill="#9aa6b5"/>';
       out += '<text x="' + cx + '" y="' + (base + 24) + '" text-anchor="middle" font-size="16" font-weight="600" fill="' + COLORS.ink
         + '" font-family="Palatino, Georgia, serif">' + 'ABC'[p] + '</text>';
       pegs[p].forEach((dk, level) => {
         const w = 30 + (pegW - 50) * dk / maxDisk;
         const yy = base - (level + 1) * diskH;
-        const shade = Math.round(35 + 40 * dk / maxDisk);
-        out += '<rect x="' + (cx - w / 2) + '" y="' + yy + '" width="' + w + '" height="' + (diskH - 2) + '" rx="4" fill="hsl(214, 55%, ' + shade + '%)"/>';
-        if (diskH >= 14) out += '<text x="' + cx + '" y="' + (yy + diskH / 2 + 3) + '" text-anchor="middle" font-size="11" fill="#fff" font-family="system-ui">' + dk + '</text>';
+        const shade = Math.round(58 + 28 * dk / maxDisk);
+        out += '<rect x="' + (cx - w / 2) + '" y="' + yy + '" width="' + w + '" height="' + (diskH - 2) + '" fill="hsl(214, 55%, ' + shade + '%)"/>';
+        if (diskH >= 14) out += '<text x="' + cx + '" y="' + (yy + diskH / 2 + 3) + '" text-anchor="middle" font-size="11" font-weight="600" fill="' + COLORS.ink + '" font-family="system-ui">' + dk + '</text>';
       });
     }
-    out += '<line x1="10" x2="' + (W - 10) + '" y1="' + base + '" y2="' + base + '" stroke="' + COLORS.ink3 + '" stroke-width="2"/></svg>';
+    out += '<line x1="10" x2="' + (W - 10) + '" y1="' + base + '" y2="' + base + '" stroke="' + COLORS.axis + '" stroke-width="2"/></svg>';
     $('#stage').innerHTML = out;
   }
 
@@ -838,8 +838,12 @@
     const step0 = Math.pow(10, Math.floor(Math.log10(span / count)));
     const err = span / count / step0;
     const step = step0 * (err >= 7.5 ? 10 : err >= 3.5 ? 5 : err >= 1.5 ? 2 : 1);
+    // keep adding ticks until one reaches or passes max, so every point fits inside the plot
     const ticks = [];
-    for (let v = Math.ceil(min / step) * step; v <= max + step * 0.001; v += step) ticks[ticks.length] = v;
+    for (let v = Math.ceil(min / step) * step; ; v += step) {
+      ticks[ticks.length] = v;
+      if (v >= max - step * 0.001) break;
+    }
     return ticks;
   }
 
@@ -890,10 +894,10 @@
     });
     xt.forEach((v) => {
       const xx = sx(v);
-      svg += '<line x1="' + xx + '" x2="' + xx + '" y1="' + (m.t + ph) + '" y2="' + (m.t + ph + 5) + '" stroke="' + COLORS.ink3 + '"/>'
+      svg += '<line x1="' + xx + '" x2="' + xx + '" y1="' + (m.t + ph) + '" y2="' + (m.t + ph + 5) + '" stroke="' + COLORS.axis + '"/>'
         + '<text x="' + xx + '" y="' + (m.t + ph + 18) + '" text-anchor="middle" font-size="11" fill="' + COLORS.ink3 + '" font-family="system-ui">' + fmtShort(v) + '</text>';
     });
-    svg += '<line x1="' + m.l + '" x2="' + (m.l + pw) + '" y1="' + (m.t + ph) + '" y2="' + (m.t + ph) + '" stroke="' + COLORS.ink3 + '"/>';
+    svg += '<line x1="' + m.l + '" x2="' + (m.l + pw) + '" y1="' + (m.t + ph) + '" y2="' + (m.t + ph) + '" stroke="' + COLORS.axis + '"/>';
     svg += '<text x="' + (m.l + pw / 2) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="12" fill="' + COLORS.ink + '" font-family="system-ui">input size n</text>';
 
     const ends = [];
@@ -924,7 +928,7 @@
           + '<text x="' + (m.l + pw + 20) + '" y="' + (e.y + 4) + '" font-size="11.5" fill="' + COLORS.ink + '" font-family="system-ui">' + esc(shortName(e.name)) + '</text>';
       });
     }
-    svg += '<line class="xhair" x1="0" x2="0" y1="' + m.t + '" y2="' + (m.t + ph) + '" stroke="' + COLORS.ink3 + '" stroke-dasharray="3 3" visibility="hidden"/>';
+    svg += '<line class="xhair" x1="0" x2="0" y1="' + m.t + '" y2="' + (m.t + ph) + '" stroke="' + COLORS.axis + '" stroke-dasharray="3 3" visibility="hidden"/>';
     svg += '<rect class="hit" x="' + m.l + '" y="' + m.t + '" width="' + pw + '" height="' + ph + '" fill="transparent"/>';
     svg += '</svg>';
 

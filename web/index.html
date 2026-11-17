@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Algorithm Explorer</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+  <h1>Algorithm Explorer</h1>
+  <p>Type your own input, run an algorithm on the Java back end, and replay every step it took.</p>
+</header>
+
+<div class="shell">
+  <nav class="rail" aria-label="Modules">
+    <button class="tab is-active" data-tab="sort">Sorting</button>
+    <button class="tab" data-tab="search">Searching</button>
+    <button class="tab" data-tab="recursion">Recursion</button>
+    <button class="tab" data-tab="ds">Data structures</button>
+    <button class="tab" data-tab="analysis">Complexity analysis</button>
+    <button class="tab" data-tab="about">How it works</button>
+  </nav>
+
+  <main id="main">
+    <!-- ============================ SORTING ============================ -->
+    <section class="panel" id="panel-sort">
+      <form class="controls" data-route="sort">
+        <div class="field">
+          <label for="sort-algo">Algorithm</label>
+          <select id="sort-algo" name="algo">
+            <option value="bubble">Bubble sort</option>
+            <option value="selection">Selection sort</option>
+            <option value="insertion">Insertion sort</option>
+            <option value="merge" selected>Merge sort</option>
+            <option value="quick">Quick sort</option>
+            <option value="heap">Heap sort</option>
+            <option value="counting">Counting sort</option>
+          </select>
+        </div>
+        <div class="field grow">
+          <label for="sort-values">Numbers to sort <span class="hint">separated by commas or spaces; up to 120 are animated, up to 100,000 are timed</span></label>
+          <textarea id="sort-values" name="values" rows="2">38, 27, 43, 3, 9, 82, 10, 55, 19, 64, 1, 47</textarea>
+          <div class="quick-fill">
+            <span>Fill with</span>
+            <button type="button" data-fill="random" data-n="16">16 random</button>
+            <button type="button" data-fill="random" data-n="50">50 random</button>
+            <button type="button" data-fill="sorted" data-n="20">20 sorted</button>
+            <button type="button" data-fill="reversed" data-n="20">20 reversed</button>
+            <button type="button" data-fill="random" data-n="5000">5,000 random (timing only)</button>
+          </div>
+        </div>
+        <button class="run" type="submit">Run sort</button>
+      </form>
+    </section>
+
+    <!-- ============================ SEARCHING ============================ -->
+    <section class="panel" id="panel-search" hidden>
+      <form class="controls" data-route="search">
+        <div class="field">
+          <label for="search-algo">Algorithm</label>
+          <select id="search-algo" name="algo">
+            <option value="linear">Linear search</option>
+            <option value="binary" selected>Binary search (iterative)</option>
+            <option value="binary-rec">Binary search (recursive)</option>
+          </select>
+        </div>
+        <div class="field grow">
+          <label for="search-values">Numbers to search in <span class="hint">binary search sorts them first if needed</span></label>
+          <textarea id="search-values" name="values" rows="2">2, 5, 8, 12, 16, 23, 38, 56, 72, 91, 104, 117, 130, 149, 160</textarea>
+          <div class="quick-fill">
+            <span>Fill with</span>
+            <button type="button" data-fill="sorted" data-n="31">31 sorted</button>
+            <button type="button" data-fill="random" data-n="31">31 random</button>
+            <button type="button" data-fill="sorted" data-n="1000">1,000 sorted</button>
+          </div>
+        </div>
+        <div class="field narrow">
+          <label for="search-target">Look for</label>
+          <input id="search-target" name="target" value="23" inputmode="numeric">
+        </div>
+        <button class="run" type="submit">Run search</button>
+      </form>
+    </section>
+
+    <!-- ============================ RECURSION ============================ -->
+    <section class="panel" id="panel-recursion" hidden>
+      <form class="controls" data-route="recursion">
+        <div class="field">
+          <label for="rec-algo">Algorithm</label>
+          <select id="rec-algo" name="algo">
+            <option value="factorial">Factorial n!</option>
+            <option value="fib-naive" selected>Fibonacci, naive recursion</option>
+            <option value="fib-memo">Fibonacci, memoised recursion</option>
+            <option value="fib-iter">Fibonacci, iterative loop</option>
+            <option value="hanoi">Tower of Hanoi</option>
+            <option value="power">Fast power xⁿ</option>
+            <option value="gcd">Euclid's GCD</option>
+            <option value="permutations">Permutations of a word</option>
+            <option value="palindrome">Palindrome check</option>
+          </select>
+        </div>
+        <div class="field grow">
+          <label for="rec-arg" id="rec-arg-label">n</label>
+          <input id="rec-arg" name="arg" value="5">
+          <p class="hint" id="rec-arg-hint"></p>
+        </div>
+        <button class="run" type="submit">Run</button>
+      </form>
+    </section>
+
+    <!-- ============================ DATA STRUCTURES ============================ -->
+    <section class="panel" id="panel-ds" hidden>
+      <form class="controls" data-route="ds">
+        <div class="field">
+          <label for="ds-kind">Structure</label>
+          <select id="ds-kind" name="kind">
+            <option value="stack" selected>Stack (array)</option>
+            <option value="queue">Queue (circular array)</option>
+            <option value="list">Singly linked list</option>
+            <option value="bst">Binary search tree</option>
+            <option value="heap">Min-heap (priority queue)</option>
+            <option value="hash">Hash table</option>
+            <option value="brackets">Stack use: balanced brackets</option>
+            <option value="expression">Stack use: evaluate an expression</option>
+          </select>
+        </div>
+        <div class="field grow">
+          <label for="ds-script" id="ds-script-label">Commands <span class="hint">one per line, or separated by ;</span></label>
+          <textarea id="ds-script" name="script" rows="5"></textarea>
+          <p class="hint" id="ds-help"></p>
+        </div>
+        <button class="run" type="submit">Run commands</button>
+      </form>
+    </section>
+
+    <!-- ============================ ANALYSIS ============================ -->
+    <section class="panel" id="panel-analysis" hidden>
+      <form class="controls analysis-controls" data-route="analyze">
+        <fieldset class="field">
+          <legend>What to measure</legend>
+          <label class="radio"><input type="radio" name="mode" value="arrays" checked> Sorting and searching (n = array length)</label>
+          <label class="radio"><input type="radio" name="mode" value="recursion"> Recursion (n = the argument)</label>
+        </fieldset>
+        <fieldset class="field grow" id="algo-picks">
+          <legend>Algorithms <span class="hint">up to 8</span></legend>
+          <div class="checks" data-mode="arrays">
+            <label><input type="checkbox" value="bubble" checked> Bubble</label>
+            <label><input type="checkbox" value="selection"> Selection</label>
+            <label><input type="checkbox" value="insertion" checked> Insertion</label>
+            <label><input type="checkbox" value="merge" checked> Merge</label>
+            <label><input type="checkbox" value="quick" checked> Quick</label>
+            <label><input type="checkbox" value="heap"> Heap</label>
+            <label><input type="checkbox" value="counting"> Counting</label>
+            <label><input type="checkbox" value="linear"> Linear search</label>
+            <label><input type="checkbox" value="binary"> Binary search</label>
+          </div>
+          <div class="checks" data-mode="recursion" hidden>
+            <label><input type="checkbox" value="fib-naive" checked> Fibonacci naive</label>
+            <label><input type="checkbox" value="fib-memo" checked> Fibonacci memoised</label>
+            <label><input type="checkbox" value="hanoi" checked> Tower of Hanoi</label>
+            <label><input type="checkbox" value="factorial"> Factorial</label>
+            <label><input type="checkbox" value="power" checked> Fast power</label>
+          </div>
+        </fieldset>
+        <div class="field">
+          <label for="an-sizes">Input sizes n</label>
+          <input id="an-sizes" name="sizes" value="500, 1000, 2000, 4000, 8000">
+        </div>
+        <div class="field" id="an-input-field">
+          <label for="an-input">Input order</label>
+          <select id="an-input" name="input">
+            <option value="random">Random</option>
+            <option value="sorted">Already sorted</option>
+            <option value="reversed">Reversed</option>
+            <option value="nearly">Nearly sorted (5% out of place)</option>
+            <option value="few">Few distinct values (0–9)</option>
+          </select>
+        </div>
+        <div class="field narrow">
+          <label for="an-trials">Timed runs</label>
+          <select id="an-trials" name="trials">
+            <option>1</option><option selected>3</option><option>5</option>
+          </select>
+        </div>
+        <button class="run" type="submit">Run analysis</button>
+      </form>
+      <div id="analysis-out"></div>
+    </section>
+
+    <!-- ============================ ABOUT ============================ -->
+    <section class="panel prose" id="panel-about" hidden>
+      <h2>How it works</h2>
+      <p>The interface you are using is a plain web page. When you press a Run button it sends your input to a small Java program running on your own computer (the back end, started with <code>run.sh</code> or <code>run.bat</code>). The Java program runs the algorithm and sends back four things: the result, every step it took, how many basic operations it performed, and how long it ran. Nothing leaves your machine and no outside service is used.</p>
+      <h3>Everything is written from scratch</h3>
+      <p>All sorting, searching and recursive algorithms are hand-written. So are the data structures they rely on: a dynamic array, an array-backed stack, a circular-array queue, a singly linked list, a binary search tree, a binary min-heap and a hash table with chaining. The Java code never imports <code>java.util</code> collections or calls <code>Arrays.sort</code> or <code>Collections.sort</code>. Even the JSON output, the random number generator and the input parser are our own.</p>
+      <h3>What gets counted</h3>
+      <dl class="defs">
+        <dt>Comparisons</dt><dd>Every time two elements are compared (or a base-case test runs, in recursion).</dd>
+        <dt>Swaps</dt><dd>Every exchange of two elements.</dd>
+        <dt>Writes</dt><dd>Single element writes: shifts in insertion sort, merges into the array, counting-sort placements, Hanoi disk moves.</dd>
+        <dt>Arithmetic</dt><dd>Additions, multiplications and divisions inside recursive algorithms.</dd>
+        <dt>Recursive calls</dt><dd>Every call of a recursive function, including base cases. Max depth is the deepest the call stack got.</dd>
+        <dt>Total operations</dt><dd>The sum of all of the above. This number depends only on the algorithm and the input, so it is the fair way to compare growth rates.</dd>
+      </dl>
+      <h3>How running time is measured</h3>
+      <p>Recording steps is slow, so each request runs the algorithm twice: once with step recording on, to collect the replay, and then five more times with recording off. The time shown is the median of those five silent runs, measured with <code>System.nanoTime()</code>. Times vary from run to run because of the Java JIT compiler and whatever else your computer is doing. Operation counts do not vary.</p>
+      <h3>Reading the complexity analysis</h3>
+      <p>The analysis page runs algorithms on growing inputs and estimates their growth rate in two ways. The <em>growth exponent</em> is the slope of log(operations) against log(n): about 1 for O(n), about 1.1 for O(n log n), about 2 for O(n²). The <em>best-fit model</em> is the function f(n) for which operations ÷ f(n) stays most constant across your sizes. Try quick sort on random and then on already-sorted input to see the worst case appear.</p>
+      <h3>Keyboard</h3>
+      <p>While a replay is loaded: <kbd>←</kbd> and <kbd>→</kbd> step backwards and forwards, <kbd>Space</kbd> plays or pauses, <kbd>Home</kbd> and <kbd>End</kbd> jump to the first and last step.</p>
+    </section>
+
+    <!-- ============================ SHARED RESULTS (steps player) ============================ -->
+    <section id="results" hidden aria-live="polite">
+      <div class="error" id="error" hidden></div>
+      <div id="result-body">
+        <p class="result-line" id="result-line"></p>
+        <p class="note" id="result-note" hidden></p>
+        <dl class="metrics" id="metrics"></dl>
+
+        <div class="theatre">
+          <div class="stage" id="stage" role="img" aria-label="Visualisation of the current step"></div>
+          <aside class="side" id="side" hidden>
+            <h3 id="side-title">Call stack</h3>
+            <div id="side-body"></div>
+          </aside>
+        </div>
+
+        <div class="player" id="player">
+          <div class="player-buttons">
+            <button type="button" data-act="first" aria-label="First step">⏮</button>
+            <button type="button" data-act="prev" aria-label="Previous step">◀</button>
+            <button type="button" data-act="play" id="play" aria-label="Play">▶ Play</button>
+            <button type="button" data-act="next" aria-label="Next step">▶</button>
+            <button type="button" data-act="last" aria-label="Last step">⏭</button>
+          </div>
+          <input type="range" id="scrub" min="0" max="0" value="0" aria-label="Step">
+          <span class="counter" id="counter">Step 0 of 0</span>
+          <label class="speed">Speed
+            <select id="speed">
+              <option value="1">1 step/s</option>
+              <option value="3">3 steps/s</option>
+              <option value="8" selected>8 steps/s</option>
+              <option value="20">20 steps/s</option>
+              <option value="60">60 steps/s</option>
+            </select>
+          </label>
+        </div>
+        <p class="step-message" id="step-message"></p>
+
+        <div class="lower">
+          <div class="log-wrap">
+            <h3>Steps</h3>
+            <ol class="log" id="log"></ol>
+          </div>
+          <div class="theory" id="theory"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
