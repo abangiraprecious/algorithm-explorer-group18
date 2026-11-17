@@ -16,6 +16,7 @@ public class MinHeap {
     /** Indices swapped by the last operation, for highlighting. */
     public IntList touched = new IntList();
 
+    /** Adds v at the end, then sifts it up while it is smaller than its parent. O(log n). */
     public void insert(int v) {
         touched = new IntList();
         if (size == data.length) grow();
@@ -33,6 +34,7 @@ public class MinHeap {
         }
     }
 
+    /** Removes the root (the minimum), moves the last item to the root and sifts it down. O(log n). */
     public int extractMin() {
         if (size == 0) throw new IllegalStateException("the heap is empty");
         touched = new IntList();
@@ -43,6 +45,7 @@ public class MinHeap {
         return min;
     }
 
+    /** The minimum, always at index 0. O(1). */
     public int peek() {
         if (size == 0) throw new IllegalStateException("the heap is empty");
         ops++;
@@ -60,6 +63,7 @@ public class MinHeap {
         for (int i = size / 2 - 1; i >= 0; i--) siftDown(i);
     }
 
+    /** Moves data[i] down while a child is smaller. O(log n). */
     private void siftDown(int i) {
         touched.add(i);
         while (true) {
@@ -73,11 +77,13 @@ public class MinHeap {
         }
     }
 
+    /** Exchanges data[i] and data[j]. O(1). */
     private void swap(int i, int j) {
         int t = data[i]; data[i] = data[j]; data[j] = t;
         ops += 3;
     }
 
+    /** Doubles the array when it is full. O(n), rare. */
     private void grow() {
         int[] bigger = new int[data.length * 2];
         for (int i = 0; i < size; i++) { bigger[i] = data[i]; ops++; }

@@ -5,6 +5,7 @@ public class IntList {
     private int[] data = new int[16];
     private int size;
 
+    /** Appends v, doubling the array when full. Amortised O(1). */
     public void add(int v) {
         if (size == data.length) {
             int[] bigger = new int[data.length * 2];
@@ -21,6 +22,7 @@ public class IntList {
 
     public int size() { return size; }
 
+    /** Copy of the stored values as a plain int[]. O(n). */
     public int[] toArray() {
         int[] out = new int[size];
         for (int i = 0; i < size; i++) out[i] = data[i];

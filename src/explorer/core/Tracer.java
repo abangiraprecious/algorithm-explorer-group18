@@ -18,6 +18,7 @@ public final class Tracer {
     public long writes;      // array assignments / element moves (not counted inside swaps)
     public long calls;       // recursive calls
     public long arith;       // arithmetic operations (+, *, %, ...) in recursive algorithms
+    public long iterations;  // loop iterations in the iterative versions (shown instead of calls)
     public int depth;
     public int maxDepth;
 
@@ -50,6 +51,13 @@ public final class Tracer {
         return false;
     }
 
+    /**
+     * Like on(), but for the few key steps (the array after each pass, merge or partition)
+     * used by the "after each pass" view. These may go up to 1,000 steps past the limit,
+     * so the pass view stays complete even when the detailed replay is cut short.
+     */
+    public boolean onKey() { return record && steps.size() < limit + 1000; }
+
     public void add(String stepJson) { steps.add(stepJson); }
 
     /** True when this tracer records steps at all (used to skip building labels in timing runs). */
@@ -61,7 +69,7 @@ public final class Tracer {
     /** Counter values as a JSON object. */
     public String countsJson() {
         return Json.obj().put("comparisons", comparisons).put("swaps", swaps).put("writes", writes)
-                .put("arith", arith).put("calls", calls).put("maxDepth", maxDepth)
+                .put("arith", arith).put("calls", calls).put("iterations", iterations).put("maxDepth", maxDepth)
                 .put("total", totalOps()).end();
     }
 

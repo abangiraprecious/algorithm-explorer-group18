@@ -35,6 +35,7 @@ public class BinarySearchTree {
         return added[0];
     }
 
+    /** Recursive insert: go left or right until an empty spot is found. O(h). */
     private Node insert(Node node, int key, boolean[] added) {
         if (node == null) { ops++; added[0] = true; path.add(key); return new Node(key); }
         ops++; // comparison
@@ -44,6 +45,7 @@ public class BinarySearchTree {
         return node;
     }
 
+    /** True if key is in the tree; follows one root-to-leaf path. O(h). */
     public boolean search(int key) {
         path = new IntList();
         Node cur = root;
@@ -68,6 +70,7 @@ public class BinarySearchTree {
         return how[0];
     }
 
+    /** Recursive delete; a node with two children is replaced by its in-order successor. O(h). */
     private Node delete(Node node, int key, String[] how) {
         if (node == null) return null;
         ops++;
@@ -88,16 +91,19 @@ public class BinarySearchTree {
         return node;
     }
 
+    /** Left subtree, node, right subtree: gives the keys in sorted order. O(n). */
     public void inorder(Node n, IntList out) {
         if (n == null) return;
         inorder(n.left, out); out.add(n.key); ops++; inorder(n.right, out);
     }
 
+    /** Node, left subtree, right subtree. O(n). */
     public void preorder(Node n, IntList out) {
         if (n == null) return;
         out.add(n.key); ops++; preorder(n.left, out); preorder(n.right, out);
     }
 
+    /** Left subtree, right subtree, node. O(n). */
     public void postorder(Node n, IntList out) {
         if (n == null) return;
         postorder(n.left, out); postorder(n.right, out); out.add(n.key); ops++;
@@ -111,6 +117,7 @@ public class BinarySearchTree {
         return 1 + (l > r ? l : r);
     }
 
+    /** Smallest key: keep going left. O(h). */
     public int min() {
         if (root == null) throw new IllegalStateException("the tree is empty");
         path = new IntList();
@@ -121,6 +128,7 @@ public class BinarySearchTree {
         return c.key;
     }
 
+    /** Largest key: keep going right. O(h). */
     public int max() {
         if (root == null) throw new IllegalStateException("the tree is empty");
         path = new IntList();

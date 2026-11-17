@@ -29,7 +29,7 @@
   }
 
   const COLORS = {
-    compare: '#2a78d6', swap: '#d6336c', pivot: '#6250d6', final: '#1f8a4c',
+    compare: '#2a78d6', swap: '#d6336c', pivot: '#6250d6', final: '#1f8a4c', yellow: '#f2c230', green: '#8fd6a5',
     bar: '#8d9bb0', barIn: '#55657c', barOut: '#d3dae3', ink: '#000000', ink3: '#000000', axis: '#6f7a8a', grid: '#e4e9ef',
   };
 
@@ -37,11 +37,11 @@
   // so a line keeps its colour whatever else is selected.
   const SERIES_COLOR = {
     bubble: '#2a78d6', selection: '#eb6834', insertion: '#1baf7a', merge: '#eda100',
-    quick: '#e87ba4', heap: '#008300', counting: '#6250d6', linear: '#e34948', binary: '#5b6b80',
+    quick: '#e87ba4', 'quick-random': '#b5179e', heap: '#008300', counting: '#6250d6', linear: '#e34948', binary: '#5b6b80',
     'fib-naive': '#2a78d6', 'fib-memo': '#eb6834', hanoi: '#1baf7a', factorial: '#eda100', power: '#e87ba4',
   };
 
-  const state = { tab: 'sort', data: null, steps: [], idx: 0, timer: null, prep: null, byTab: {} };
+  const state = { tab: 'sort', data: null, steps: [], allSteps: [], idx: 0, timer: null, prep: null, byTab: {} };
 
   // ------------------------------------------------------------------ tabs
   $$('.tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
@@ -83,11 +83,12 @@
 
   // ------------------------------------------------------------------ recursion & data-structure presets
   const REC = {
-    factorial: { label: 'n', value: '6', hint: 'A whole number from 0 to 20 (21! does not fit in 64 bits).' },
-    'fib-naive': { label: 'n', value: '5', hint: '0 to 32. Try 5 to see the whole call tree, then 25 to feel the exponential cost.' },
+    factorial: { label: 'n', value: '6', hint: 'A whole number from 0 to 20 (0! = 1; negative numbers are rejected; 21! does not fit in 64 bits).' },
+    'factorial-iter': { label: 'n', value: '6', hint: 'Same range as the recursive version: 0 to 20. A loop, so it counts loop iterations instead of calls.' },
+    'fib-naive': { label: 'n', value: '5', hint: '0 to 30 only. Naive recursion recomputes the same values again and again, so the calls grow like 1.618ⁿ: fib(30) already needs 2,692,537 calls. Try 5 to see the whole call tree.' },
     'fib-memo': { label: 'n', value: '6', hint: '0 to 92. Compare the number of calls with the naive version for the same n.' },
-    'fib-iter': { label: 'n', value: '10', hint: '0 to 92. A plain loop, shown for comparison: no calls and no call stack.' },
-    hanoi: { label: 'Number of disks', value: '3', hint: '1 to 20. Needs 2ⁿ − 1 moves; the replay keeps the first 2,500 steps.' },
+    'fib-dp': { label: 'n', value: '10', hint: '0 to 92. Fills a table from the bottom up: n − 1 loop iterations, no calls and no call stack.' },
+    hanoi: { label: 'Number of disks', value: '3', hint: '1 to 10. Choose the source, destination and auxiliary pegs; the puzzle needs exactly 2ⁿ − 1 moves.' },
     power: { label: 'Base and exponent', value: '3 13', hint: 'Two whole numbers, e.g. "3 13" for 3¹³. The result must fit in 64 bits.' },
     gcd: { label: 'Two numbers', value: '1071 462', hint: 'Two whole numbers from 0 to 1,000,000,000.' },
     permutations: { label: 'Word', value: 'abc', hint: 'Up to 7 characters. Three characters shows the whole recursion tree.' },
@@ -99,25 +100,39 @@
     $('#rec-arg-label').textContent = r.label;
     $('#rec-arg').value = r.value;
     $('#rec-arg-hint').textContent = r.hint;
+    $('#hanoi-pegs').hidden = $('#rec-algo').value !== 'hanoi';
   }
   $('#rec-algo').addEventListener('change', syncRec);
   syncRec();
 
   const DS = {
-    stack: { script: 'push 5 8 2\npeek\npop\npush 9 4 7\npop\npop\npop\npop\npop\npop',
-      help: 'Commands: push <numbers>, pop, peek, size, isEmpty. The array starts with room for 4 and doubles when full. The last pop runs on an empty stack to show underflow.' },
-    queue: { script: 'enqueue 10 20 30\ndequeue\nenqueue 40 50\ndequeue\nenqueue 60 70\npeek\ndequeue',
-      help: 'Commands: enqueue <numbers>, dequeue, peek, size. Watch the front and rear wrap around the ring before it grows.' },
-    list: { script: 'addLast 10 20 30\naddFirst 5\ninsert 2 15\nsearch 30\nget 3\nremove 20\nreverse',
-      help: 'Commands: addFirst <n>, addLast <n>, insert <position> <n>, removeFirst, remove <n>, search <n>, get <position>, reverse, size.' },
+    stack: { script: 'push 5 8 2\npeek\nsize\npop\npush 9 4 7\nisFull\ndisplay\npop\npop\npop\npop\npop\nisEmpty\npop',
+      help: 'Commands: push <numbers>, pop, peek, size, isEmpty, isFull, display. The capacity is fixed by you: pushing onto a full stack shows an overflow, popping an empty one an underflow.',
+      ops: [['push', 'push {v}'], ['pop', 'pop'], ['peek', 'peek'], ['size', 'size'], ['is_empty', 'isEmpty'], ['is_full', 'isFull'], ['display', 'display']] },
+    'linear-queue': { script: 'enqueue 10 20 30 40 50\ndequeue\ndequeue\nfront\nisFull\nenqueue 60\ndisplay',
+      help: 'Commands: enqueue <numbers>, dequeue, front, size, isEmpty, isFull, display. Fill the queue, dequeue twice, then enqueue again: rear is at the end of the array, so the queue says it is full although two slots are free (false full).',
+      ops: [['enqueue', 'enqueue {v}'], ['dequeue', 'dequeue'], ['front', 'front'], ['size', 'size'], ['is_empty', 'isEmpty'], ['is_full', 'isFull'], ['display', 'display']] },
+    queue: { script: 'enqueue 10 20 30 40 50\ndequeue\ndequeue\nenqueue 60 70\nfront\nisFull\ndisplay\nenqueue 80',
+      help: 'Commands: enqueue <numbers>, dequeue, front, size, isEmpty, isFull, display. The same steps as the linear queue: here rear wraps around to slot 0, so the freed slots are reused.',
+      ops: [['enqueue', 'enqueue {v}'], ['dequeue', 'dequeue'], ['front', 'front'], ['size', 'size'], ['is_empty', 'isEmpty'], ['is_full', 'isFull'], ['display', 'display']] },
+    list: { script: 'insertLast 10 20 30\ninsertFirst 5\ninsertBefore 20 15\ninsertAfter 30 35\ndisplay\nsearch 30\ndeleteBefore 20\ndeleteAfter 30\ndeleteFirst\ndeleteLast\ndelete 20\nsize\ndisplay',
+      help: 'Commands: insertFirst <n>, insertLast <n>, insertBefore <given> <n>, insertAfter <given> <n>, deleteFirst, deleteLast, deleteBefore <given>, deleteAfter <given>, delete <n>, search <n>, size, display (also insert <position> <n>, get <position>, reverse).',
+      ops: [['insert first', 'insertFirst {v}'], ['insert last', 'insertLast {v}'], ['insert before', 'insertBefore {x} {v}'], ['insert after', 'insertAfter {x} {v}'],
+        ['delete first', 'deleteFirst'], ['delete last', 'deleteLast'], ['delete before', 'deleteBefore {x}'], ['delete after', 'deleteAfter {x}'], ['delete element', 'delete {v}'],
+        ['search', 'search {v}'], ['size', 'size'], ['display', 'display']] },
+    dlist: { script: 'insertLast 10 20 30\ninsertFirst 5\ninsertBefore 20 15\ninsertAfter 30 35\ndisplay\ndisplayBackward\nsearch 30\ndeleteBefore 20\ndeleteAfter 30\ndeleteFirst\ndeleteLast\ndelete 20\nsize\ndisplayBackward',
+      help: 'Commands: insertFirst <n>, insertLast <n>, insertBefore <given> <n>, insertAfter <given> <n>, deleteFirst, deleteLast, deleteBefore <given>, deleteAfter <given>, delete <n>, search <n>, size, display, displayBackward.',
+      ops: [['insert first', 'insertFirst {v}'], ['insert last', 'insertLast {v}'], ['insert before', 'insertBefore {x} {v}'], ['insert after', 'insertAfter {x} {v}'],
+        ['delete first', 'deleteFirst'], ['delete last', 'deleteLast'], ['delete before', 'deleteBefore {x}'], ['delete after', 'deleteAfter {x}'], ['delete element', 'delete {v}'],
+        ['search', 'search {v}'], ['size', 'size'], ['display forward', 'display'], ['display backward', 'displayBackward']] },
     bst: { script: 'insert 50 30 70 20 40 60 80 35\nsearch 35\ninorder\npreorder\nheight\ndelete 30\ndelete 50\ninorder\nmin\nmax',
       help: 'Commands: insert <numbers>, search <n>, delete <n>, inorder, preorder, postorder, height, min, max. Try inserting 1 2 3 4 5 6 to see a tree degenerate into a list.' },
     heap: { script: 'insert 40 15 30 10 50 5\npeek\nextractMin\nextractMin\nbuild 9 4 7 1 8 2 6',
       help: 'Commands: insert <numbers>, extractMin, peek, build <numbers>, size. The tree and the array are the same data.' },
     hash: { script: 'put apple 3\nput banana 7\nput cherry 2\nput date 9\nput elder 4\nput fig 1\nput grape 8\nget cherry\nput apple 10\nremove banana\nget banana',
       help: 'Commands: put <key> <value>, get <key>, remove <key>. The table starts with 8 buckets and doubles when more than 6 keys are stored.' },
-    brackets: { script: '{ [ (a + b) * c ] - (d / e) }', label: 'Text with brackets',
-      help: 'Any text using ( ) [ ] { }. Try an unbalanced one such as ( [ ) ].' },
+    brackets: { script: '{ ( [ ] ) }', label: 'Text with brackets',
+      help: 'Any text using ( ) [ ] { }. The stack is shown after each symbol. Try an unbalanced one such as ( [ ) ].' },
     expression: { script: '3 + 4 * (2 - 1) ^ 2 - 10 / 5', label: 'Expression',
       help: 'Numbers with + − * / % ^ and brackets. A leading or bracketed minus is treated as negation, e.g. -(2 + 3) * 2.' },
   };
@@ -129,7 +144,26 @@
     $('#ds-script-label').innerHTML = d.label ? esc(d.label)
       : 'Commands <span class="hint">one per line, or separated by ;</span>';
     $('#ds-script').rows = d.label ? 2 : 6;
+    const kind = $('#ds-kind').value;
+    $('#ds-cap-field').hidden = !(kind === 'stack' || kind === 'queue' || kind === 'linear-queue');
+    $('#ds-ops').hidden = !d.ops;
+    $$('.ds-elem').forEach((el) => { el.hidden = kind !== 'list' && kind !== 'dlist'; });
+    $('#ds-op-buttons').innerHTML = (d.ops || []).map((o, i) => '<button type="button" data-op="' + i + '">' + esc(o[0]) + '</button>').join(' ');
   }
+
+  // one button per operation: it adds the command to the list and runs the whole list again,
+  // so the structure is redrawn after the operation and its message is the last step
+  $('#ds-op-buttons').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-op]');
+    if (!b) return;
+    const op = DS[$('#ds-kind').value].ops[Number(b.dataset.op)][1];
+    const cmd = op.replace('{v}', $('#ds-value').value.trim()).replace('{x}', $('#ds-elem').value.trim());
+    const ta = $('#ds-script');
+    ta.value = ta.value.replace(/\s+$/, '') + (ta.value.trim() ? '\n' : '') + cmd;
+    ta.scrollTop = ta.scrollHeight;
+    state.jumpToEnd = true;
+    b.closest('form').requestSubmit();
+  });
   $('#ds-kind').addEventListener('change', syncDs);
   syncDs();
 
@@ -171,6 +205,40 @@
     }
   }));
 
+  // "Compare all": the same input through bubble, selection, insertion, merge and both quick sorts
+  $('#compare-all').addEventListener('click', async () => {
+    const btn = $('#compare-all');
+    const out = $('#compare-out');
+    btn.disabled = true;
+    btn.textContent = 'Comparing…';
+    out.innerHTML = '<p class="loading">Running every algorithm on your input (3 timed runs each).</p>';
+    try {
+      const body = new URLSearchParams();
+      body.set('values', $('#sort-values').value);
+      renderCompare(await post('compare', body));
+    } catch (err) {
+      out.innerHTML = '<div class="error">' + esc(err.message) + '</div>';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Compare all';
+    }
+  });
+
+  function renderCompare(d) {
+    let html = '<div class="table-wrap"><table class="summary-table"><thead><tr><th>Algorithm</th><th class="num">Comparisons</th>'
+      + '<th class="num">Swaps</th><th class="num">Moves (writes)</th><th class="num">Recursive calls</th><th class="num">Running time</th>'
+      + '<th>Best</th><th>Average</th><th>Worst</th><th>Extra space</th><th>Stable</th></tr></thead><tbody>';
+    d.rows.forEach((r) => {
+      const c = r.counts, t = r.theory;
+      html += '<tr><td>' + esc(r.name) + '</td><td class="num">' + fmt(c.comparisons) + '</td><td class="num">' + fmt(c.swaps) + '</td><td class="num">'
+        + fmt(c.writes) + '</td><td class="num">' + fmt(c.calls) + '</td><td class="num">' + fmtTime(r.timeNs) + '</td><td>' + esc(t.best) + '</td><td>'
+        + esc(t.avg) + '</td><td>' + esc(t.worst) + '</td><td>' + esc(t.space) + '</td><td>' + esc(t.stable) + '</td></tr>';
+    });
+    html += '</tbody></table></div><p class="analysis-note">All ' + d.rows.length + ' algorithms sorted the same ' + fmt(d.n)
+      + ' number(s). Times are the average of ' + d.trials + ' runs with step recording off.</p>';
+    $('#compare-out').innerHTML = html;
+  }
+
   function showError(msg) {
     $('#results').hidden = false;
     $('#error').hidden = false;
@@ -181,8 +249,17 @@
   // ------------------------------------------------------------------ loading a result
   function load(data) {
     state.data = data;
-    state.steps = data.steps || [];
+    state.allSteps = data.steps || [];
+    state.steps = state.allSteps;
+    // "After each pass only" keeps the array after every pass (bubble, selection, insertion)
+    // or after every merge/partition (merge sort, quick sort)
+    $('#pass-toggle').hidden = data.category !== 'sort' || !state.allSteps.length;
+    if (data.category === 'sort' && $('#passes').checked) state.steps = passSteps(state.allSteps);
     state.idx = 0;
+    $('#play').textContent = data.algo === 'hanoi' ? '▶ Start' : '▶ Play';
+    $('[data-act="first"]').setAttribute('aria-label', data.algo === 'hanoi' ? 'Reset' : 'First step');
+    $('[data-act="first"]').title = data.algo === 'hanoi' ? 'Reset' : 'First step';
+    $('[data-act="next"]').title = 'Step';
     $('#results').hidden = false;
     $('#error').hidden = true;
     $('#result-body').hidden = false;
@@ -208,22 +285,40 @@
     buildLog();
     $('#scrub').max = Math.max(0, state.steps.length - 1);
     $('#player').hidden = state.steps.length === 0;
-    render(0);
+    if (state.jumpToEnd) { state.jumpToEnd = false; render(state.steps.length - 1); } else render(0);
   }
+
+  function passSteps(all) {
+    const out = [];
+    for (let i = 0; i < all.length; i++) {
+      if (i === 0 || all[i].t === 'pass' || all[i].t === 'done') out[out.length] = all[i];
+    }
+    return out;
+  }
+
+  $('#passes').addEventListener('change', () => {
+    if (!state.data || state.data.category !== 'sort') return;
+    stop();
+    state.steps = $('#passes').checked ? passSteps(state.allSteps) : state.allSteps;
+    buildLog();
+    $('#scrub').max = Math.max(0, state.steps.length - 1);
+    render(0);
+  });
 
   function renderMetrics(d) {
     const c = d.counts || {};
     const items = [];
     items.push({ label: 'Running time', value: fmtTime(d.timeNs), lead: true,
-      title: 'Median of ' + d.trials + ' runs with step recording switched off' });
+      title: 'Average of ' + d.trials + ' runs with step recording switched off' });
     items.push({ label: 'Total operations', value: fmt(c.total), lead: true });
     if (d.n !== undefined) items.push({ label: 'Input size n', value: fmt(d.n) });
     if (d.category === 'ds') {
       items.push({ label: 'Steps', value: fmt(c.operations) });
     } else {
-      const always = d.category === 'sort' || d.category === 'search' ? ['comparisons'] : ['calls', 'maxDepth'];
+      const iterative = d.algo === 'factorial-iter' || d.algo === 'fib-dp';
+      const always = d.category === 'sort' || d.category === 'search' ? ['comparisons'] : iterative ? ['iterations'] : ['calls', 'maxDepth'];
       const names = [['comparisons', d.category === 'recursion' ? 'Base-case checks' : 'Comparisons'], ['swaps', 'Swaps'],
-        ['writes', d.algo === 'hanoi' ? 'Disk moves' : 'Writes'], ['arith', 'Arithmetic'], ['calls', 'Recursive calls'], ['maxDepth', 'Max depth']];
+        ['writes', d.algo === 'hanoi' ? 'Disk moves' : 'Writes'], ['arith', 'Arithmetic'], ['calls', 'Recursive calls'], ['iterations', 'Loop iterations'], ['maxDepth', 'Max depth']];
       names.forEach(([k, label]) => {
         if (always.indexOf(k) >= 0 || c[k] > 0) items.push({ label, value: fmt(c[k]) });
       });
@@ -254,6 +349,8 @@
         + '<tr><th>n²</th><td>' + fmt(n * n) + '</td></tr>'
         + '<tr><th>n(n−1)/2</th><td>' + fmt(n * (n - 1) / 2) + '</td></tr></table>'
         + '<p>Compare the comparisons with these reference values to see which growth rate this run matches.</p></div>';
+    } else if (d.category === 'recursion' && (d.algo === 'factorial-iter' || d.algo === 'fib-dp')) {
+      html += '<div class="yours"><p><strong>Your run:</strong> ' + fmt(c.iterations) + ' loop iteration(s) and no recursive calls, so no call stack is needed.</p></div>';
     } else if (d.category === 'recursion') {
       html += '<div class="yours"><p><strong>Your run:</strong> ' + fmt(c.calls) + ' recursive call(s), the call stack reached depth '
         + fmt(c.maxDepth) + '. Each active call keeps a frame on the stack, which is why recursion uses O(depth) extra memory.</p></div>';
@@ -332,7 +429,7 @@
   function stop() {
     if (state.timer) clearInterval(state.timer);
     state.timer = null;
-    $('#play').textContent = '▶ Play';
+    $('#play').textContent = state.data && state.data.algo === 'hanoi' ? '▶ Start' : '▶ Play';
     $('#play').setAttribute('aria-label', 'Play');
   }
 
@@ -400,6 +497,8 @@
       if (s.pv === i) col = COLORS.pivot;
       else if (h[i]) col = moving ? COLORS.swap : COLORS.compare;
       else if (f[i]) col = COLORS.final;
+      else if (s.y && i >= s.y[0] && i <= s.y[1]) col = COLORS.yellow;
+      else if (s.g && i >= s.g[0] && i <= s.g[1]) col = COLORS.green;
       else if (r) col = (i < r[0] || i > r[1]) ? COLORS.barOut : COLORS.barIn;
       const v = a[i];
       const yt = Math.min(y(v), y0), hh = Math.max(Math.abs(y(v) - y0), 1.5);
@@ -417,7 +516,9 @@
     }
     out += '</svg>';
     const k = [['Being compared', COLORS.compare], ['Being moved', COLORS.swap], ['In final place', COLORS.final]];
-    if (state.data.algo === 'quick') k.splice(2, 0, ['Pivot', COLORS.pivot]);
+    if (state.data.algo === 'quick' || state.data.algo === 'quick-random') {
+      k.splice(2, 0, ['Pivot', COLORS.pivot], ['Yellow: smaller than the pivot', COLORS.yellow], ['Green: greater or equal', COLORS.green]);
+    }
     if (r) k.push(['Active part', COLORS.barIn]);
     $('#stage').innerHTML = out + key(k);
   }
@@ -449,8 +550,9 @@
     const curAt = new Array(steps.length);
     const stackAt = new Array(steps.length);
     const pegsAt = new Array(steps.length);
+    const movesAt = new Array(steps.length);
     const live = [], liveLabels = [];
-    let top = 0, pegs = null;
+    let top = 0, pegs = null, moves = 0;
     for (let i = 0; i < steps.length; i++) {
       const s = steps[i];
       if (s.t === 'call') {
@@ -472,7 +574,9 @@
         stackAt[i] = liveLabels.slice(0, top);
       }
       if (s.pegs) pegs = s.pegs;
+      if (s.t === 'move') moves++;
       pegsAt[i] = pegs;
+      movesAt[i] = moves;
     }
     // simple tidy layout: leaves left to right, parents centred over their children
     let leaf = 0, maxD = 1;
@@ -483,12 +587,12 @@
       n.x = (n.kids[0].x + n.kids[n.kids.length - 1].x) / 2;
     }
     for (let i = 0; i < order.length; i++) if (!byId[order[i].p]) place(order[i]);
-    return { byId, order, curAt, stackAt, pegsAt, leaves: leaf, maxD };
+    return { byId, order, curAt, stackAt, pegsAt, movesAt, leaves: leaf, maxD };
   }
 
   function drawRecursion(i) {
     const p = state.prep, d = state.data;
-    if (d.algo === 'hanoi') { drawHanoi(p.pegsAt[i]); return; }
+    if (d.algo === 'hanoi') { drawHanoi(i); return; }
     if (!p.order.length) {
       $('#stage').innerHTML = '<p class="caption">This version uses a loop, so there are no recursive calls and the call stack stays empty.</p>'
         + '<p class="result-line">' + esc(state.steps[i].m) + '</p>';
@@ -539,27 +643,99 @@
       + key([['Current call', COLORS.pivot], ['Waiting on the stack', COLORS.compare], ['Returned', COLORS.final]]);
   }
 
-  function drawHanoi(pegs) {
-    if (!pegs) return;
-    let maxDisk = 1;
-    pegs.forEach((pg) => pg.forEach((dk) => { if (dk > maxDisk) maxDisk = dk; }));
-    const W = 900, H = 300, base = 270, pegW = W / 3, diskH = Math.min(24, 200 / maxDisk);
-    let out = '<svg viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">';
+  // ------------------------------------------------------------------ Tower of Hanoi: pegs, animated move, counter and move list
+  const HANOI = { W: 900, H: 300, base: 270 };
+
+  function hanoiGeometry(pegs) {
+    let disks = 0;
+    pegs.forEach((pg) => { disks += pg.length; });
+    const pegW = HANOI.W / 3;
+    return { disks: Math.max(disks, 1), pegW, diskH: Math.min(24, 200 / Math.max(disks, 1)) };
+  }
+
+  function diskRect(g, dk, cx, yy) {
+    const w = 30 + (g.pegW - 50) * dk / g.disks;
+    const shade = Math.round(58 + 28 * dk / g.disks);
+    let out = '<rect x="' + (cx - w / 2) + '" y="' + yy + '" width="' + w + '" height="' + (g.diskH - 2) + '" fill="hsl(214, 55%, ' + shade + '%)"/>';
+    if (g.diskH >= 14) out += '<text x="' + cx + '" y="' + (yy + g.diskH / 2 + 3) + '" text-anchor="middle" font-size="11" font-weight="600" fill="' + COLORS.ink + '" font-family="system-ui">' + dk + '</text>';
+    return out;
+  }
+
+  /** Draws the three pegs; the top disk of peg `skip` is left out (it is the one being animated). */
+  function hanoiSvg(pegs, skip) {
+    const g = hanoiGeometry(pegs), base = HANOI.base;
+    let out = '<svg viewBox="0 0 ' + HANOI.W + ' ' + HANOI.H + '" aria-hidden="true">';
     for (let p = 0; p < 3; p++) {
-      const cx = pegW * p + pegW / 2;
+      const cx = g.pegW * p + g.pegW / 2;
       out += '<rect x="' + (cx - 4) + '" y="40" width="8" height="' + (base - 40) + '" fill="#9aa6b5"/>';
       out += '<text x="' + cx + '" y="' + (base + 24) + '" text-anchor="middle" font-size="16" font-weight="600" fill="' + COLORS.ink
         + '" font-family="Palatino, Georgia, serif">' + 'ABC'[p] + '</text>';
       pegs[p].forEach((dk, level) => {
-        const w = 30 + (pegW - 50) * dk / maxDisk;
-        const yy = base - (level + 1) * diskH;
-        const shade = Math.round(58 + 28 * dk / maxDisk);
-        out += '<rect x="' + (cx - w / 2) + '" y="' + yy + '" width="' + w + '" height="' + (diskH - 2) + '" fill="hsl(214, 55%, ' + shade + '%)"/>';
-        if (diskH >= 14) out += '<text x="' + cx + '" y="' + (yy + diskH / 2 + 3) + '" text-anchor="middle" font-size="11" font-weight="600" fill="' + COLORS.ink + '" font-family="system-ui">' + dk + '</text>';
+        if (p === skip && level === pegs[p].length - 1) return;
+        out += diskRect(g, dk, cx, base - (level + 1) * g.diskH);
       });
     }
-    out += '<line x1="10" x2="' + (W - 10) + '" y1="' + base + '" y2="' + base + '" stroke="' + COLORS.axis + '" stroke-width="2"/></svg>';
-    $('#stage').innerHTML = out;
+    out += '<line x1="10" x2="' + (HANOI.W - 10) + '" y1="' + base + '" y2="' + base + '" stroke="' + COLORS.axis + '" stroke-width="2"/>';
+    out += '<g id="hanoi-moving"></g></svg>';
+    return out;
+  }
+
+  function movedDisk(before, after) {
+    let from = -1, to = -1;
+    for (let p = 0; p < 3; p++) {
+      if (after[p].length > before[p].length) to = p;
+      if (after[p].length < before[p].length) from = p;
+    }
+    if (from < 0 || to < 0) return null;
+    return { from, to, disk: after[to][after[to].length - 1] };
+  }
+
+  /** Lifts the moved disk off its source peg, carries it across and drops it on the destination peg. */
+  function animateDisk(before, after, mv) {
+    const g = hanoiGeometry(after), base = HANOI.base;
+    const x0 = g.pegW * mv.from + g.pegW / 2, x1 = g.pegW * mv.to + g.pegW / 2;
+    const y0 = base - before[mv.from].length * g.diskH, y1 = base - after[mv.to].length * g.diskH, yTop = 8;
+    const rate = Number($('#speed').value);
+    const ms = Math.max(120, Math.min(600, (state.timer ? 0.8 : 1) * 1000 / rate));
+    const legUp = y0 - yTop, legAcross = Math.abs(x1 - x0), legDown = y1 - yTop, total = legUp + legAcross + legDown;
+    const layer = $('#hanoi-moving');
+    const start = performance.now();
+    if (state.anim) cancelAnimationFrame(state.anim);
+    function frame(now) {
+      const f = Math.min(1, (now - start) / ms);
+      let dist = f * total, x = x0, y = y0;
+      if (dist <= legUp) y = y0 - dist;
+      else if (dist <= legUp + legAcross) { y = yTop; x = x0 + (x1 > x0 ? 1 : -1) * (dist - legUp); }
+      else { x = x1; y = yTop + (dist - legUp - legAcross); }
+      if (layer) layer.innerHTML = diskRect(g, mv.disk, x, y);
+      if (f < 1) state.anim = requestAnimationFrame(frame);
+      else state.anim = null;
+    }
+    state.anim = requestAnimationFrame(frame);
+  }
+
+  function drawHanoi(i) {
+    const p = state.prep, d = state.data;
+    const pegs = p.pegsAt[i];
+    if (!pegs) return;
+    if (state.anim) { cancelAnimationFrame(state.anim); state.anim = null; }
+    const total = d.moves ? d.moves.length : 0;
+    const done = p.movesAt[i];
+    const s = state.steps[i];
+    // animate only when we arrive at a move by going forward one step (Start or Step)
+    const mv = s.t === 'move' && i > 0 && state.lastHanoi === i - 1 ? movedDisk(p.pegsAt[i - 1], pegs) : null;
+    state.lastHanoi = i;
+    let html = '<p class="move-count">Move <strong>' + fmt(done) + '</strong> of ' + fmt(total) + '. For ' + d.arg + ' disk(s) the total is 2^' + d.arg + ' − 1 = ' + fmt(total)
+      + (done === total && total > 0 ? '. All disks are on the destination peg ✓' : '') + '</p>';
+    html += hanoiSvg(pegs, mv ? mv.to : -1);
+    if (d.moves) {
+      html += '<ol class="moves" id="hanoi-moves">' + d.moves.map((m, k) =>
+        '<li class="' + (k === done - 1 ? 'current' : (k >= done ? 'later' : '')) + '">' + esc(m) + '</li>').join('') + '</ol>';
+    }
+    $('#stage').innerHTML = html;
+    const cur = $('#hanoi-moves li.current');
+    if (cur) { const list = $('#hanoi-moves'); list.scrollTop = cur.offsetTop - list.offsetTop - list.clientHeight / 2; }
+    if (mv) animateDisk(p.pegsAt[i - 1], pegs, mv);
   }
 
   function drawStack(frames) {
@@ -622,17 +798,29 @@
       const marks = (i === sn.front && sn.size > 0 ? 'front ' : '') + (i === sn.rear ? 'rear' : '');
       ring += cell(v === null ? '–' : v, v === null ? 'empty-slot' : (i === sn.front ? 'hi' : ''), 'slot ' + i + (marks ? ': ' + marks.trim() : ''));
     });
+    if (sn.linear) {
+      const end = sn.rear === sn.cap ? ', rear = ' + sn.rear + ' is past the last slot' : ', rear (next free slot) = ' + sn.rear;
+      return '<div class="ds-block"><p class="caption">Queue order (dequeue takes from the front)</p><div class="ds-row">' + logical + '</div></div>'
+        + '<div class="ds-block"><p class="caption">The linear array underneath: front = ' + sn.front + end + ', size ' + sn.size + ' of ' + sn.cap
+        + '. Slots before front are never reused.</p><div class="ds-row">' + ring + '</div>'
+        + (sn.falseFull ? '<p class="note">False full: rear has reached the end of the array, so enqueue is refused even though '
+          + (sn.cap - sn.size) + ' slot(s) are empty. A circular queue fixes this by wrapping rear back to slot 0.</p>' : '') + '</div>';
+    }
     return '<div class="ds-block"><p class="caption">Queue order (dequeue takes from the front)</p><div class="ds-row">' + logical + '</div></div>'
-      + '<div class="ds-block"><p class="caption">The ring buffer underneath: front = ' + sn.front + ', rear (next free slot) = ' + sn.rear
-      + ', size ' + sn.size + ' of ' + sn.cap + '</p><div class="ds-row">' + ring + '</div></div>';
+      + '<div class="ds-block"><p class="caption">The circular array underneath: front = ' + sn.front + ', rear (next free slot) = ' + sn.rear
+      + ', size ' + sn.size + ' of ' + sn.cap + '. After slot ' + (sn.cap - 1) + ', rear wraps round to slot 0.</p><div class="ds-row">' + ring + '</div></div>';
   }
 
   function dsList(sn) {
     const hi = sn.hi ? sn.hi[0] : -1;
-    let row = '<span class="caption">head</span><span class="arrow">→</span>';
-    sn.items.forEach((v, i) => { row += cell(v, i === hi ? 'hi' : '', 'pos ' + i) + '<span class="arrow">→</span>'; });
-    row += '<span class="caption">null</span>';
-    return '<div class="ds-block"><p class="caption">' + sn.items.length + ' node(s); each node stores a value and a pointer to the next node</p><div class="ds-row">' + row + '</div></div>';
+    const link = sn.doubly ? '⇄' : '→';
+    let row = (sn.doubly ? '<span class="caption">null</span><span class="arrow">←</span>' : '') + '<span class="caption">head</span><span class="arrow">→</span>';
+    sn.items.forEach((v, i) => { row += cell(v, i === hi ? 'hi' : '', 'pos ' + i) + '<span class="arrow">' + (i < sn.items.length - 1 ? link : '→') + '</span>'; });
+    row += '<span class="caption">null</span>' + (sn.doubly && sn.items.length ? '<span class="caption">(tail = ' + esc(sn.items[sn.items.length - 1]) + ')</span>' : '');
+    let html = '<div class="ds-block"><p class="caption">' + sn.items.length + ' node(s); each node stores a value and '
+      + (sn.doubly ? 'two pointers, prev and next' : 'a pointer to the next node') + '</p><div class="ds-row">' + row + '</div></div>';
+    if (sn.out) html += '<div class="ds-block"><p class="caption">Output</p><p class="result-line">' + esc(sn.out) + '</p></div>';
+    return html;
   }
 
   // generic binary tree drawing; node = {label, l, r, path, last}
@@ -718,7 +906,7 @@
   }
 
   // ------------------------------------------------------------------ complexity analysis
-  const DEFAULT_SIZES = { arrays: '500, 1000, 2000, 4000, 8000', recursion: '5, 10, 15, 20, 25' };
+  const DEFAULT_SIZES = { arrays: '100, 500, 1000, 2000, 5000, 10000', recursion: '5, 10, 15, 20, 25' };
 
   $$('input[name="mode"]').forEach((r) => r.addEventListener('change', () => {
     const mode = $('input[name="mode"]:checked').value;
@@ -767,7 +955,7 @@
     const series = data.series.map((s) => ({ key: s.key, name: s.name, color: SERIES_COLOR[s.key] || '#5b6b80', s }));
     const inputName = { random: 'random', sorted: 'already sorted', reversed: 'reversed', nearly: 'nearly sorted', few: 'few distinct values' }[data.input];
     let html = '<div class="chart-tools"><label><input type="checkbox" id="logaxes"> Logarithmic axes (straight lines; the slope is the exponent)</label>'
-      + (mode === 'arrays' ? '<span>Input: ' + esc(inputName) + ', median of ' + data.trials + ' timed run(s)</span>' : '<span>Median of ' + data.trials + ' timed run(s)</span>') + '</div>';
+      + (mode === 'arrays' ? '<span>Input: ' + esc(inputName) + ', average of ' + data.trials + ' timed runs</span>' : '<span>Average of ' + data.trials + ' timed runs</span>') + '</div>';
     html += '<div class="charts"><div class="chart-card" id="chart-ops"></div><div class="chart-card" id="chart-time"></div></div>';
 
     // summary table
@@ -813,7 +1001,7 @@
     const draw = () => {
       const log = $('#logaxes').checked;
       lineChart($('#chart-ops'), series, 'ops', { title: 'Operations performed', sub: 'Exact count of comparisons, swaps, writes, arithmetic and calls', log, fmtY: fmt });
-      lineChart($('#chart-time'), series, 'ns', { title: 'Running time', sub: 'Median measured time', log, fmtY: fmtTime });
+      lineChart($('#chart-time'), series, 'ns', { title: 'Running time', sub: 'Average measured time', log, fmtY: fmtTime });
     };
     $('#logaxes').addEventListener('change', draw);
     draw();

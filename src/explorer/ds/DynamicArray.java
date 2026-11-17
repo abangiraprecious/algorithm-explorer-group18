@@ -21,11 +21,13 @@ public class DynamicArray<T> {
         data = new Object[capacity < 1 ? 1 : capacity];
     }
 
+    /** Appends value; doubles the array first if it is full. Amortised O(1). */
     public void add(T value) {
         if (size == data.length) grow();
         data[size++] = value;
     }
 
+    /** Inserts value at index by shifting later items right. O(n). */
     public void insertAt(int index, T value) {
         if (index < 0 || index > size) throw new IndexOutOfBoundsException("index " + index);
         if (size == data.length) grow();
@@ -34,6 +36,7 @@ public class DynamicArray<T> {
         size++;
     }
 
+    /** Removes the item at index by shifting later items left. O(n). */
     @SuppressWarnings("unchecked")
     public T removeAt(int index) {
         check(index);
@@ -43,6 +46,7 @@ public class DynamicArray<T> {
         return old;
     }
 
+    /** Removes the last item. O(1). */
     @SuppressWarnings("unchecked")
     public T removeLast() {
         if (size == 0) throw new IllegalStateException("array is empty");
@@ -51,12 +55,14 @@ public class DynamicArray<T> {
         return old;
     }
 
+    /** Item at index. O(1). */
     @SuppressWarnings("unchecked")
     public T get(int index) {
         check(index);
         return (T) data[index];
     }
 
+    /** Replaces the item at index. O(1). */
     public void set(int index, T value) {
         check(index);
         data[index] = value;
@@ -66,11 +72,13 @@ public class DynamicArray<T> {
     public int capacity() { return data.length; }
     public boolean isEmpty() { return size == 0; }
 
+    /** Empties the array. O(n). */
     public void clear() {
         for (int i = 0; i < size; i++) data[i] = null;
         size = 0;
     }
 
+    /** Doubles the capacity, copying every item. O(n), rare. */
     private void grow() {
         Object[] bigger = new Object[data.length * 2];
         for (int i = 0; i < size; i++) bigger[i] = data[i];

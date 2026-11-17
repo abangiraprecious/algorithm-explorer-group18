@@ -27,7 +27,7 @@ For every run, the application shows:
 - The result produced by the algorithm.
 - Every step taken, which can be replayed with play, pause, step, scrub and speed controls.
 - Operation counts: comparisons, swaps, writes, arithmetic operations, recursive calls and maximum recursion depth.
-- The running time, taken as the median of five timed runs with step recording switched off.
+- The running time, taken as the average of five timed runs with step recording switched off.
 
 The project covers recursion, data structures, sorting, searching and time-complexity analysis. It runs entirely on the local machine. It needs no internet connection, external API, framework or third-party library.
 
@@ -42,19 +42,21 @@ The project covers recursion, data structures, sorting, searching and time-compl
 
 ## 3. Main Features
 
-### 3.1 Sorting Algorithms
+### 3.1 Sorting Algorithms (Module C)
 
-The application implements seven sorting algorithms:
+The five sorting algorithms required by the brief:
 
 1. Bubble sort
 2. Selection sort
 3. Insertion sort
 4. Merge sort
-5. Quick sort
-6. Heap sort
-7. Counting sort
+5. Quick sort, with the **first element as the pivot** and the **yellow/green partition** taught in class, plus a second option with a **randomised pivot**
 
-The animation shows each comparison, swap and write, together with the pivot, the active sub-array and the elements already in their final positions. Up to 120 numbers are animated. Up to 100,000 numbers are counted and timed.
+Heap sort and counting sort are included as extras.
+
+The animation shows each comparison, swap and write, together with the pivot, the yellow (smaller than the pivot) and green (greater than or equal) parts of a quick sort partition, the active sub-array and the elements already in their final positions. The *After each pass only* option shows the array after every pass (bubble, selection, insertion) or after every merge or partition step (merge sort, quick sort), with Step and Play (auto-play) buttons. Up to 120 numbers are animated. Up to 100,000 numbers are counted and timed.
+
+The **Compare all** button runs bubble, selection, insertion, merge and both quick sorts on the same input and shows comparisons, swaps, moves, recursive calls, running time, best/average/worst case, extra space and stability side by side in one table.
 
 ### 3.2 Searching Algorithms
 
@@ -64,41 +66,39 @@ The animation shows each comparison, swap and write, together with the pivot, th
 
 The interface shows the search range shrinking. The recursive version also shows its call stack.
 
-### 3.3 Recursion
+### 3.3 Recursion (Module A)
 
-- Factorial
-- Fibonacci using naive recursion
-- Fibonacci using memoisation
-- Iterative Fibonacci, for comparison
-- Tower of Hanoi
-- Fast power using exponentiation by squaring
-- Euclid's greatest common divisor algorithm
-- Permutations using backtracking
-- Recursive palindrome check
+- Fibonacci in three ways: naive recursion (limited to n ≤ 30, with the reason shown on screen), memoised recursion and bottom-up dynamic programming. Each shows the result, the number of calls or loop iterations, and the time.
+- Factorial, both recursive and iterative. n = 0 is handled (0! = 1) and negative input is rejected with a clear message.
+- Tower of Hanoi, 1 to 10 disks, with the source, destination and auxiliary pegs chosen by the user. Every move is listed ("Move disk 1 from A to C"), the disks are animated from peg to peg with Start, Pause, Step, Reset and speed controls, and a running move counter confirms that the total is 2ⁿ − 1.
+- Extras: fast power, Euclid's greatest common divisor, permutations by backtracking and a recursive palindrome check.
 
-Each run draws the recursion tree and the call stack as execution proceeds.
+Each recursive run draws the recursion tree and the call stack as execution proceeds.
 
-### 3.4 Data Structures and Applications
+### 3.4 Data Structures and Applications (Module B)
+
+Every structure is our own class. Each operation has its own button (it adds the command to the list and runs it), and the structure is redrawn after every operation with a message such as "Popped 42" or "Queue is full". Commands can also be typed, one per line.
 
 | Data structure | Implementation and supported operations |
 |---|---|
-| Dynamic array | Resizable array that doubles when full |
-| Integer list | Growable integer array |
-| Stack | Array-based stack with push, pop, peek, size and isEmpty |
-| Queue | Circular-array queue with enqueue, dequeue, peek and size |
-| Singly linked list | Head and tail pointers; insertion, removal, search, retrieval and reversal |
-| Binary search tree | Insertion, search, deletion (all three cases), traversals, height, minimum and maximum |
-| Min-heap | Array-based binary heap with insertion, extract-min, peek and O(n) heap construction |
-| Hash table | Separate chaining, own hash function, doubles when the load factor passes 0.75 |
+| Stack | Array-based, **fixed capacity set by the user**: push, pop, peek, size, is_empty, is_full, display; overflow and underflow messages |
+| Linear queue | Fixed-size array: enqueue, dequeue, front, size, is_empty, is_full, display; demonstrates the **false full** problem |
+| Circular queue | Fixed-size ring buffer: the same operations, with the front and rear indices shown so the rear can be seen wrapping round to slot 0 |
+| Singly linked list | Own `Node` objects with `next`: insert at the beginning, at the end, before and after a given element; delete at the beginning, at the end, before and after a given element, and a given element; search, size, display (also insert at a position, get and reverse) |
+| Doubly linked list | Own `Node` objects with `prev` and `next`: the same operations, plus display backward |
+| Binary search tree | Insertion, search, deletion (all three cases), traversals, height, minimum and maximum (extra) |
+| Min-heap | Array-based binary heap with insertion, extract-min, peek and O(n) heap construction (extra) |
+| Hash table | Separate chaining, own hash function, doubles when the load factor passes 0.75 (extra) |
+| Dynamic array, integer list | Growable arrays used inside the program |
 
 Two stack-based applications are included:
 
-- **Balanced brackets:** checks matching parentheses, square brackets and braces.
-- **Expression evaluator:** converts an expression to postfix with the shunting-yard algorithm, then evaluates the postfix form.
+- **Balanced brackets:** checks an expression such as `{ ( [ ] ) }` with our stack and shows the stack after each symbol.
+- **Expression evaluator:** converts an expression to postfix with the shunting-yard algorithm, then evaluates the postfix form (extra).
 
-### 3.5 Time-Complexity Analysis
+### 3.5 Time-Complexity Analysis (Module D)
 
-Users choose algorithms, input sizes and an input order: random, sorted, reversed, nearly sorted or few distinct values.
+The analysis page runs the chosen algorithms on growing input sizes (by default n = 100, 500, 1,000, 2,000, 5,000 and 10,000) for a chosen input order: random, already sorted, reversed, nearly sorted or few distinct values. Each size is timed 3, 5 or 7 times and the **average** is reported.
 
 The analysis page shows:
 
@@ -112,6 +112,8 @@ The analysis page shows:
 
 A recursion mode does the same for naive and memoised Fibonacci, Tower of Hanoi, factorial and fast power.
 
+For the report, `bench.sh` / `bench.bat` runs the full Module D experiment from the command line: every sort from Module C on random, sorted and reversed input for n = 100, 500, 1,000, 2,000, 5,000 and 10,000, plus merge sort and both quick sorts for n = 50,000 and 100,000, each repeated (3 times by default) and averaged. The results are written to `results/module_d.csv`.
+
 ## 4. Algorithms and Theoretical Complexity
 
 | Algorithm | Best case | Average case | Worst case | Extra space |
@@ -120,7 +122,8 @@ A recursion mode does the same for naive and memoised Fibonacci, Tower of Hanoi,
 | Selection sort | O(n²) | O(n²) | O(n²) | O(1) |
 | Insertion sort | O(n) | O(n²) | O(n²) | O(1) |
 | Merge sort | O(n log n) | O(n log n) | O(n log n) | O(n) |
-| Quick sort | O(n log n) | O(n log n) | O(n²) | O(log n) stack on average, O(n) worst |
+| Quick sort, first-element pivot | O(n log n) | O(n log n) | O(n²) (sorted or reversed input) | O(log n) stack on average, O(n) worst |
+| Quick sort, random pivot | O(n log n) | O(n log n) expected | O(n²), very unlikely | O(log n) stack expected |
 | Heap sort | O(n log n) | O(n log n) | O(n log n) | O(1) |
 | Counting sort | O(n + k) | O(n + k) | O(n + k) | O(n + k) |
 | Linear search | O(1) | O(n) | O(n) | O(1) |
@@ -130,9 +133,11 @@ A recursion mode does the same for naive and memoised Fibonacci, Tower of Hanoi,
 
 | Recursive algorithm | Recurrence or approach | Time complexity |
 |---|---|---|
-| Factorial | T(n) = T(n−1) + O(1) | O(n) |
+| Factorial, recursive | T(n) = T(n−1) + O(1) | O(n) time, O(n) stack |
+| Factorial, iterative | One loop, n − 1 iterations | O(n) time, O(1) space |
 | Naive Fibonacci | T(n) = T(n−1) + T(n−2) + O(1) | O(φⁿ), φ ≈ 1.618 |
 | Memoised Fibonacci | Each subproblem is solved once | O(n) |
+| Bottom-up Fibonacci (DP) | table[i] = table[i−1] + table[i−2] | O(n) time, O(n) table |
 | Tower of Hanoi | T(n) = 2T(n−1) + 1 | 2ⁿ − 1 moves |
 | Fast power | T(n) = T(n/2) + O(1) | O(log n) |
 | Euclid's GCD | gcd(a, b) = gcd(b, a mod b) | O(log min(a, b)) |
@@ -177,16 +182,17 @@ A tracing component (`Tracer`) records operations while each algorithm runs.
 | Writes | Element writes, shifts and placements |
 | Arithmetic | Arithmetic operations in recursive algorithms |
 | Calls | Recursive calls |
+| Loop iterations | Iterations of the loop in iterative factorial and bottom-up Fibonacci |
 | Maximum depth | Deepest recursion depth reached |
 | Total | Sum of all the counters above |
 
-**Sorting, searching and recursion pages:** the application first runs the algorithm with step recording on, to build the replay. It then runs it five more times with recording off and reports the median time, measured with `System.nanoTime()`. Very fast searches are repeated 200 times per measurement and averaged.
+**Sorting, searching, recursion and data structure pages:** the application first runs the algorithm with step recording on, to build the replay. It then runs it five more times with recording off and reports the average time, measured with `System.nanoTime()` (a high-resolution timer). Very fast searches are repeated 200 times per measurement and averaged.
 
-**Complexity analysis page:** the user chooses 1, 3 or 5 timed runs per size, and the median is reported. Each algorithm is run three times first to warm up the Java JIT compiler. Searches are repeated 2,000 times per measurement.
+**Complexity analysis page and `bench.sh`:** each size is timed at least 3 times and the average is reported. Each algorithm is run first to warm up the Java JIT compiler. Searches are repeated 2,000 times per measurement.
 
 Running times vary with the Java Virtual Machine and the computer's workload. Operation counts never change for the same input, so they are the main basis for judging growth.
 
-Requests run on a worker thread with a 512 MB stack, so deep recursion (for example, quick sort on 30,000 sorted numbers) completes without a stack overflow.
+Requests run on a worker thread with a 512 MB stack, so deep recursion (for example, first-element quick sort on 100,000 sorted numbers) completes without a stack overflow.
 
 ## 7. Project Structure
 
@@ -195,14 +201,17 @@ AlgorithmExplorer/
 ├── README.md
 ├── run.sh / run.bat            start the application
 ├── test.sh / test.bat          run the self-test
+├── bench.sh / bench.bat        run the Module D experiment
 ├── src/
 │   └── explorer/
 │       ├── ds/                 hand-written data structures
 │       │   ├── DynamicArray.java
 │       │   ├── IntList.java
-│       │   ├── ArrayStack.java
-│       │   ├── CircularQueue.java
+│       │   ├── ArrayStack.java        fixed-capacity (Module B) or growable stack
+│       │   ├── LinearQueue.java       fixed array, shows the false-full problem
+│       │   ├── CircularQueue.java     ring buffer
 │       │   ├── SinglyLinkedList.java
+│       │   ├── DoublyLinkedList.java
 │       │   ├── BinarySearchTree.java
 │       │   ├── MinHeap.java
 │       │   └── HashTable.java
@@ -222,7 +231,10 @@ AlgorithmExplorer/
 │       │   ├── Main.java       HTTP server and worker thread
 │       │   ├── Api.java        one handler per route
 │       │   └── Params.java     form-data parser
-│       └── SelfTest.java       automated checks
+│       ├── SelfTest.java       automated checks
+│       └── Benchmark.java      Module D timing experiment (writes results/module_d.csv)
+├── results/
+│   └── module_d.csv            Module D measurements used in the report
 └── web/
     ├── index.html
     ├── style.css
@@ -293,7 +305,7 @@ run.bat
 Make the scripts executable once:
 
 ```bash
-chmod +x run.sh test.sh
+chmod +x run.sh test.sh bench.sh
 ```
 
 Then start the application:
@@ -323,6 +335,13 @@ Stop the server with `Ctrl+C`.
 - Windows: double-click `test.bat`
 - macOS or Linux: `./test.sh`
 
+### Step 5: Run the Module D experiment (optional)
+
+- Windows: double-click `bench.bat`
+- macOS or Linux: `./bench.sh` (or `./bench.sh 5` for 5 runs per size)
+
+It takes about a minute and writes `results/module_d.csv`. First-element quick sort on 100,000 sorted numbers is the slowest part (about 5 billion comparisons).
+
 ### Manual Java Commands
 
 **macOS or Linux**
@@ -331,6 +350,7 @@ Stop the server with `Ctrl+C`.
 javac -encoding UTF-8 -d out $(find src -name "*.java")
 java -cp out explorer.server.Main 8080
 java -cp out explorer.SelfTest
+java -cp out explorer.Benchmark 3
 ```
 
 **Windows (Command Prompt)**
@@ -340,27 +360,28 @@ dir /s /b src\*.java > sources.txt
 javac -encoding UTF-8 -d out @sources.txt
 java -cp out explorer.server.Main 8080
 java -cp out explorer.SelfTest
+java -cp out explorer.Benchmark 3
 ```
 
 ## 9. Testing
 
-The self-test (`SelfTest.java`) runs 2,159 automated checks. All 2,159 pass.
+The self-test (`SelfTest.java`) runs 2,491 automated checks. All 2,491 pass.
 
 The checks cover:
 
 - Every sort on 300 random arrays, including empty arrays, single items, duplicates and negative numbers. Each result is checked to be sorted and to hold the same items as the input.
-- Exact operation counts predicted by theory. For example, selection sort on 10 items makes exactly 45 comparisons, binary search on 1,024 items makes 11 probes, and fib(10) makes 177 calls.
-- Known results: 20!, fib(90), 2¹⁰ − 1 Hanoi moves, 3¹³, gcd(1071, 462) = 21 and the 4! permutations of a word.
-- Stack and queue order across resizes and ring wrap-around, all three binary search tree delete cases, heap ordering, a hash table with 500 keys and resizing, expression evaluation and bracket checking.
+- Exact operation counts predicted by theory. For example, selection sort on 10 items makes exactly 45 comparisons, first-element quick sort on 200 sorted items makes 200·199/2 comparisons while the random pivot makes far fewer, insertion sort on sorted input makes n − 1 comparisons, binary search on 1,024 items makes 11 probes, fib(10) makes 177 calls naively and 19 when memoised, and bottom-up fib(10) takes 9 loop iterations.
+- Known results: 0! and 20! (recursive and iterative), fib(90), Hanoi with 1 to 8 disks between any pegs (2ⁿ − 1 moves each), 3¹³, gcd(1071, 462) = 21 and the 4! permutations of a word.
+- Fixed-capacity stack overflow and underflow, the linear queue's false full, the circular queue wrapping round and reusing slots, every insert and delete of the singly and doubly linked lists (including display backward), all three binary search tree delete cases, heap ordering, a hash table with 500 keys and resizing, expression evaluation and bracket checking.
 
-Invalid input returns a clear message instead of crashing, for example: `"abc" is not a whole number (item 2).`, `n must be between 0 and 32 (you entered 40).` and `stack underflow: the stack is empty`.
+Invalid input returns a clear message instead of crashing, for example: `"abc" is not a whole number (item 2).`, `Factorial is not defined for negative numbers (you entered -3).`, `Naive recursion is limited to n ≤ 30 (you entered 31). …` and `Stack overflow: the stack is full (capacity 5), so 9 cannot be pushed`.
 
 ## 10. Demonstration Guide
 
-1. **Sorting:** run quick sort on the default numbers and step through one partition. Then click *20 sorted* and run it again. Comparisons jump to n(n−1)/2 = 190, the worst case.
-2. **Recursion:** run naive Fibonacci with n = 5 and watch fib(3) and fib(2) being computed again and again. Switch to memoised Fibonacci: 9 calls instead of 15. With n = 25 it is 49 calls instead of 242,785.
-3. **Data structures:** run the stack example to see the array double and the underflow message. Run `insert 1 2 3 4 5 6; height` on the binary search tree to see it become a chain of height 5. Run the hash table example to see it resize to 16 buckets.
-4. **Complexity analysis:** select bubble, insertion, merge and quick sort, choose *Already sorted*, and run. Bubble and insertion sort fit O(n), merge sort fits O(n log n), and quick sort fits O(n²). Switch to *Random* to see quick sort return to O(n log n).
+1. **Sorting:** run quick sort (first-element pivot) on the default numbers and step through one partition to see the yellow and green parts grow. Tick *After each pass only* to see the array after each partition. Then click *20 sorted* and run it again: comparisons jump to n(n−1)/2 = 190, the worst case. Switch to the random pivot to see it drop. Press *Compare all* to see all five algorithms in one table.
+2. **Recursion:** run naive Fibonacci with n = 5 and watch fib(3) and fib(2) being computed again and again. Switch to memoised Fibonacci: 9 calls instead of 15, and bottom-up DP: 4 loop iterations. Run Tower of Hanoi with 4 disks from B to A and press Start to watch the 15 moves.
+3. **Data structures:** set the stack capacity to 3 and press *push* four times to see the overflow. On the linear queue, enqueue 5 values, dequeue twice and enqueue again to see the false full; run the same steps on the circular queue to see rear wrap to slot 0. On the doubly linked list, use *insert before*, *delete after* and *display backward*. Check `{ ( [ ] ) }` with the balanced-brackets page.
+4. **Complexity analysis:** select bubble, insertion, merge and both quick sorts, choose *Already sorted*, and run. Bubble and insertion sort fit O(n), merge sort and random-pivot quick sort fit O(n log n), and first-element quick sort fits O(n²).
 
 ## 11. Contributions
 
@@ -371,8 +392,8 @@ Precious Abangira Nimmusiima and Isaac Isota led the project. All five members d
 | Precious Abangira Nimmusiima | Project lead; recursion, complexity analysis and server integration | `Recursion.java`, `Analyzer.java`, `Tracer.java`, `Api.java` |
 | Isaac Isota | Project lead; sorting, searching and part of the web interface | `Sorting.java`, `Searching.java`, `index.html`, `style.css` |
 | Teta Nadine Tracy | Interactive browser application | `app.js`, `Catalog.java` |
-| Nyakecho Karen Faith | Data structures and supporting utilities | all files in `ds/`, `Input.java`, `Json.java`, `Rng.java` |
-| Ainebyona Sheba | Data structure applications and testing | `DataStructures.java`, `Main.java`, `Params.java`, `SelfTest.java` |
+| Nyakecho Karen Faith | Data structures and supporting utilities | all files in `ds/` (including `LinearQueue.java` and `DoublyLinkedList.java`), `Input.java`, `Json.java`, `Rng.java` |
+| Ainebyona Sheba | Data structure applications and testing | `DataStructures.java`, `Main.java`, `Params.java`, `SelfTest.java`, `Benchmark.java` |
 
 ## 12. Academic Information
 

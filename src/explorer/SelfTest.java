@@ -10,8 +10,11 @@ import explorer.core.Tracer;
 import explorer.ds.ArrayStack;
 import explorer.ds.BinarySearchTree;
 import explorer.ds.CircularQueue;
+import explorer.ds.DoublyLinkedList;
+import explorer.ds.DynamicArray;
 import explorer.ds.HashTable;
 import explorer.ds.IntList;
+import explorer.ds.LinearQueue;
 import explorer.ds.MinHeap;
 import explorer.ds.SinglyLinkedList;
 
@@ -50,6 +53,23 @@ public final class SelfTest {
         Sorting.bubble(new int[]{1, 2, 3, 4, 5, 6, 7, 8}, tb);
         check(tb.comparisons == 7 && tb.swaps == 0, "bubble best case");
 
+        // first-element quick sort on sorted input: every split is 0 : n-1, so n(n-1)/2 comparisons
+        Tracer tq = Tracer.silent();
+        int[] asc = new int[200];
+        for (int i = 0; i < asc.length; i++) asc[i] = i;
+        Sorting.quick(asc, tq);
+        check(tq.comparisons == 200 * 199 / 2, "first-pivot quick sort worst case = n(n-1)/2, got " + tq.comparisons);
+        // the random pivot avoids that worst case on the same input
+        Tracer tr = Tracer.silent();
+        for (int i = 0; i < asc.length; i++) asc[i] = i;
+        Sorting.quickRandom(asc, tr);
+        check(Sorting.isSorted(asc) && tr.comparisons < 200 * 199 / 4, "random-pivot quick sort on sorted input, got " + tr.comparisons);
+        // insertion sort on sorted input: n-1 comparisons and no shifts
+        Tracer ti = Tracer.silent();
+        for (int i = 0; i < asc.length; i++) asc[i] = i;
+        Sorting.insertion(asc, ti);
+        check(ti.comparisons == 199, "insertion best case n-1 comparisons");
+
         // ---- searching
         int[] sorted = {-5, -1, 0, 3, 3, 7, 10, 22, 40};
         for (int i = 0; i < sorted.length; i++) {
@@ -71,11 +91,26 @@ public final class SelfTest {
         check(Recursion.factorial(20, Tracer.silent()) == 2432902008176640000L, "20!");
         check(Recursion.fibNaive(20, Tracer.silent()) == 6765, "fib 20 naive");
         check(Recursion.fibMemo(90, Tracer.silent()) == 2880067194370816120L, "fib 90 memo");
-        check(Recursion.fibIterative(50, Tracer.silent()) == 12586269025L, "fib 50 iterative");
+        check(Recursion.fibBottomUp(50, Tracer.silent()) == 12586269025L, "fib 50 bottom-up");
         Tracer tf = Tracer.silent();
         Recursion.fibNaive(10, tf);
         check(tf.calls == 177, "fib(10) makes 177 calls, got " + tf.calls);
+        Tracer tfm = Tracer.silent();
+        Recursion.fibMemo(10, tfm);
+        check(tfm.calls == 19, "memoised fib(10) makes 2n-1 = 19 calls, got " + tfm.calls);
+        Tracer tfd = Tracer.silent();
+        check(Recursion.fibBottomUp(10, tfd) == 55 && tfd.iterations == 9, "bottom-up fib(10) = 55 in 9 iterations");
+        check(Recursion.fibBottomUp(0, Tracer.silent()) == 0 && Recursion.fibBottomUp(1, Tracer.silent()) == 1, "fib(0), fib(1) bottom-up");
+        check(Recursion.factorialIterative(0, Tracer.silent()) == 1 && Recursion.factorialIterative(20, Tracer.silent()) == 2432902008176640000L,
+                "iterative factorial 0! and 20!");
+        check(Recursion.factorial(0, Tracer.silent()) == 1, "recursive 0! = 1");
         check(Recursion.hanoi(10, Tracer.silent()) == 1023, "hanoi 10 = 1023 moves");
+        for (int disks = 1; disks <= 8; disks++) {
+            DynamicArray<String> mv = new DynamicArray<String>();
+            Tracer th = new Tracer(true, 4000);
+            long m = Recursion.hanoi(disks, 1, 0, 2, mv, th);       // from B to A using C
+            check(m == (1L << disks) - 1 && mv.size() == m, "hanoi " + disks + " disks B to A");
+        }
         check(Recursion.power(3, 13, Tracer.silent()) == 1594323L, "3^13");
         check(Recursion.power(-2, 63, Tracer.silent()) == Long.MIN_VALUE, "(-2)^63");
         check(Recursion.gcd(1071, 462, Tracer.silent()) == 21, "gcd(1071,462)");
@@ -99,6 +134,59 @@ public final class SelfTest {
         }
         while (!q.isEmpty()) fifo &= q.dequeue() == expect++;
         check(fifo, "queue FIFO across wrap-around and resizes");
+
+        ArrayStack<Integer> fixed = new ArrayStack<Integer>(3, true);
+        fixed.push(1); fixed.push(2); fixed.push(3);
+        boolean overflow = false;
+        try { fixed.push(4); } catch (IllegalStateException e) { overflow = true; }
+        check(overflow && fixed.isFull() && fixed.size() == 3, "fixed stack overflow");
+        fixed.pop(); fixed.pop(); fixed.pop();
+        boolean underflow = false;
+        try { fixed.pop(); } catch (IllegalStateException e) { underflow = true; }
+        check(underflow && fixed.isEmpty(), "fixed stack underflow");
+
+        LinearQueue<Integer> lq = new LinearQueue<Integer>(3);
+        lq.enqueue(1); lq.enqueue(2); lq.enqueue(3);
+        check(lq.dequeue() == 1 && lq.dequeue() == 2, "linear queue FIFO");
+        boolean falseFull = false;
+        try { lq.enqueue(4); } catch (IllegalStateException e) { falseFull = true; }
+        check(falseFull && lq.isFalseFull() && lq.size() == 1, "linear queue false full");
+
+        CircularQueue<Integer> cq = new CircularQueue<Integer>(3, true);
+        cq.enqueue(1); cq.enqueue(2); cq.enqueue(3);
+        cq.dequeue(); cq.dequeue();
+        cq.enqueue(4); cq.enqueue(5);            // rear wraps round to slots 0 and 1
+        check(cq.isFull() && cq.rear() == 2 && cq.dequeue() == 3 && cq.dequeue() == 4 && cq.dequeue() == 5, "circular queue wraps and reuses slots");
+        boolean qFull = false;
+        CircularQueue<Integer> cq2 = new CircularQueue<Integer>(1, true);
+        cq2.enqueue(9);
+        try { cq2.enqueue(10); } catch (IllegalStateException e) { qFull = true; }
+        check(qFull, "fixed circular queue full");
+
+        SinglyLinkedList s1 = new SinglyLinkedList();
+        s1.addLast(10); s1.addLast(20); s1.addLast(30);
+        s1.insertBefore(20, 15); s1.insertAfter(30, 35); s1.insertBefore(10, 5);   // 5 10 15 20 30 35
+        check(s1.display().equals("head → 5 → 10 → 15 → 20 → 30 → 35 → null"), "singly insert before/after: " + s1.display());
+        check(s1.removeBefore(15) == 10 && s1.removeAfter(20) == 30 && s1.removeLast() == 35 && s1.removeFirst() == 5, "singly deletes");
+        check(s1.display().equals("head → 15 → 20 → null") && s1.indexOf(20) == 1 && s1.size() == 2, "singly after deletes: " + s1.display());
+
+        DoublyLinkedList d = new DoublyLinkedList();
+        d.addLast(10); d.addLast(20); d.addFirst(5);
+        d.insertBefore(20, 15); d.insertAfter(20, 25);                            // 5 10 15 20 25
+        check(d.displayForward().equals("head → 5 → 10 → 15 → 20 → 25 → null"), "doubly forward: " + d.displayForward());
+        check(d.displayBackward().equals("tail → 25 → 20 → 15 → 10 → 5 → null"), "doubly backward: " + d.displayBackward());
+        check(d.removeBefore(15) == 10 && d.removeAfter(15) == 20 && d.removeLast() == 25 && d.removeFirst() == 5 && d.size() == 1, "doubly deletes");
+        check(d.removeValue(15) == 0 && d.size() == 0 && d.head() == null && d.tail() == null, "doubly delete given element");
+
+        DataStructures ds1 = new DataStructures(true, 3);
+        ds1.run("stack", "push 1 2 3; push 4; pop; isFull; display");
+        check(ds1.summary.startsWith("Stack holds 2 of 3"), "stack script with overflow, got " + ds1.summary);
+        DataStructures ds2 = new DataStructures(true, 3);
+        ds2.run("linear-queue", "enqueue 1 2 3; dequeue; dequeue; enqueue 4");
+        check(ds2.summary.indexOf("false full") >= 0, "linear queue script shows false full, got " + ds2.summary);
+        DataStructures ds3 = new DataStructures(true);
+        ds3.run("dlist", "insertLast 1 2 3; insertBefore 2 9; deleteAfter 9; displayBackward");
+        check(ds3.summary.equals("Doubly linked list has 3 node(s)"), "dlist script, got " + ds3.summary);
 
         SinglyLinkedList ll = new SinglyLinkedList();
         ll.addLast(2); ll.addFirst(1); ll.addLast(4); ll.insertAt(2, 3);

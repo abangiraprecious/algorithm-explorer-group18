@@ -76,6 +76,7 @@ public final class Main {
                 try {
                     switch (route) {
                         case "sort": out[0] = Api.sort(params); break;
+                        case "compare": out[0] = Api.compare(params); break;
                         case "search": out[0] = Api.search(params); break;
                         case "recursion": out[0] = Api.recursion(params); break;
                         case "ds": out[0] = Api.ds(params); break;

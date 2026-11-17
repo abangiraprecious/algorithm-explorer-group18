@@ -33,7 +33,8 @@
             <option value="selection">Selection sort</option>
             <option value="insertion">Insertion sort</option>
             <option value="merge" selected>Merge sort</option>
-            <option value="quick">Quick sort</option>
+            <option value="quick">Quick sort (first-element pivot)</option>
+            <option value="quick-random">Quick sort (random pivot)</option>
             <option value="heap">Heap sort</option>
             <option value="counting">Counting sort</option>
           </select>
@@ -50,8 +51,12 @@
             <button type="button" data-fill="random" data-n="5000">5,000 random (timing only)</button>
           </div>
         </div>
-        <button class="run" type="submit">Run sort</button>
+        <div class="field buttons">
+          <button class="run" type="submit">Run sort</button>
+          <button class="run secondary" type="button" id="compare-all" title="Run bubble, selection, insertion, merge and quick sort on the same input">Compare all</button>
+        </div>
       </form>
+      <div id="compare-out"></div>
     </section>
 
     <!-- ============================ SEARCHING ============================ -->
@@ -89,10 +94,11 @@
         <div class="field">
           <label for="rec-algo">Algorithm</label>
           <select id="rec-algo" name="algo">
-            <option value="factorial">Factorial n!</option>
+            <option value="factorial">Factorial n!, recursive</option>
+            <option value="factorial-iter">Factorial n!, iterative</option>
             <option value="fib-naive" selected>Fibonacci, naive recursion</option>
             <option value="fib-memo">Fibonacci, memoised recursion</option>
-            <option value="fib-iter">Fibonacci, iterative loop</option>
+            <option value="fib-dp">Fibonacci, bottom-up dynamic programming</option>
             <option value="hanoi">Tower of Hanoi</option>
             <option value="power">Fast power xⁿ</option>
             <option value="gcd">Euclid's GCD</option>
@@ -105,6 +111,11 @@
           <input id="rec-arg" name="arg" value="5">
           <p class="hint" id="rec-arg-hint"></p>
         </div>
+        <div class="field pegs" id="hanoi-pegs" hidden>
+          <label>Source <select name="from"><option selected>A</option><option>B</option><option>C</option></select></label>
+          <label>Destination <select name="to"><option>A</option><option>B</option><option selected>C</option></select></label>
+          <label>Auxiliary <select name="via"><option>A</option><option selected>B</option><option>C</option></select></label>
+        </div>
         <button class="run" type="submit">Run</button>
       </form>
     </section>
@@ -115,9 +126,11 @@
         <div class="field">
           <label for="ds-kind">Structure</label>
           <select id="ds-kind" name="kind">
-            <option value="stack" selected>Stack (array)</option>
+            <option value="stack" selected>Stack (array, fixed capacity)</option>
+            <option value="linear-queue">Queue (linear array)</option>
             <option value="queue">Queue (circular array)</option>
             <option value="list">Singly linked list</option>
+            <option value="dlist">Doubly linked list</option>
             <option value="bst">Binary search tree</option>
             <option value="heap">Min-heap (priority queue)</option>
             <option value="hash">Hash table</option>
@@ -128,7 +141,16 @@
         <div class="field grow">
           <label for="ds-script" id="ds-script-label">Commands <span class="hint">one per line, or separated by ;</span></label>
           <textarea id="ds-script" name="script" rows="5"></textarea>
+          <div class="quick-fill" id="ds-ops" hidden>
+            <span>Value</span><input id="ds-value" value="42" inputmode="numeric" aria-label="Value">
+            <span class="ds-elem">Given element</span><input class="ds-elem" id="ds-elem" value="20" inputmode="numeric" aria-label="Given element">
+            <span id="ds-op-buttons"></span>
+          </div>
           <p class="hint" id="ds-help"></p>
+        </div>
+        <div class="field narrow" id="ds-cap-field">
+          <label for="ds-cap">Capacity</label>
+          <input id="ds-cap" name="capacity" value="5" inputmode="numeric">
         </div>
         <button class="run" type="submit">Run commands</button>
       </form>
@@ -149,7 +171,8 @@
             <label><input type="checkbox" value="selection"> Selection</label>
             <label><input type="checkbox" value="insertion" checked> Insertion</label>
             <label><input type="checkbox" value="merge" checked> Merge</label>
-            <label><input type="checkbox" value="quick" checked> Quick</label>
+            <label><input type="checkbox" value="quick" checked> Quick (first pivot)</label>
+            <label><input type="checkbox" value="quick-random" checked> Quick (random pivot)</label>
             <label><input type="checkbox" value="heap"> Heap</label>
             <label><input type="checkbox" value="counting"> Counting</label>
             <label><input type="checkbox" value="linear"> Linear search</label>
@@ -165,7 +188,7 @@
         </fieldset>
         <div class="field">
           <label for="an-sizes">Input sizes n</label>
-          <input id="an-sizes" name="sizes" value="500, 1000, 2000, 4000, 8000">
+          <input id="an-sizes" name="sizes" value="100, 500, 1000, 2000, 5000, 10000">
         </div>
         <div class="field" id="an-input-field">
           <label for="an-input">Input order</label>
@@ -178,9 +201,9 @@
           </select>
         </div>
         <div class="field narrow">
-          <label for="an-trials">Timed runs</label>
+          <label for="an-trials">Timed runs <span class="hint">averaged</span></label>
           <select id="an-trials" name="trials">
-            <option>1</option><option selected>3</option><option>5</option>
+            <option selected>3</option><option>5</option><option>7</option>
           </select>
         </div>
         <button class="run" type="submit">Run analysis</button>
@@ -193,21 +216,24 @@
       <h2>How it works</h2>
       <p>The interface you are using is a plain web page. When you press a Run button it sends your input to a small Java program running on your own computer (the back end, started with <code>run.sh</code> or <code>run.bat</code>). The Java program runs the algorithm and sends back four things: the result, every step it took, how many basic operations it performed, and how long it ran. Nothing leaves your machine and no outside service is used.</p>
       <h3>Everything is written from scratch</h3>
-      <p>All sorting, searching and recursive algorithms are hand-written. So are the data structures they rely on: a dynamic array, an array-backed stack, a circular-array queue, a singly linked list, a binary search tree, a binary min-heap and a hash table with chaining. The Java code never imports <code>java.util</code> collections or calls <code>Arrays.sort</code> or <code>Collections.sort</code>. Even the JSON output, the random number generator and the input parser are our own.</p>
+      <p>All sorting, searching and recursive algorithms are hand-written. So are the data structures they rely on: a dynamic array, an array-backed stack with a fixed capacity, a linear queue and a circular queue on fixed arrays, singly and doubly linked lists, a binary search tree, a binary min-heap and a hash table with chaining. The Java code never imports <code>java.util</code> collections or calls <code>Arrays.sort</code> or <code>Collections.sort</code>. Even the JSON output, the random number generator and the input parser are our own.</p>
       <h3>What gets counted</h3>
       <dl class="defs">
         <dt>Comparisons</dt><dd>Every time two elements are compared (or a base-case test runs, in recursion).</dd>
         <dt>Swaps</dt><dd>Every exchange of two elements.</dd>
         <dt>Writes</dt><dd>Single element writes: shifts in insertion sort, merges into the array, counting-sort placements, Hanoi disk moves.</dd>
+        <dt>Loop iterations</dt><dd>Passes through the loop in the iterative versions (iterative factorial, bottom-up Fibonacci), shown instead of recursive calls.</dd>
         <dt>Arithmetic</dt><dd>Additions, multiplications and divisions inside recursive algorithms.</dd>
         <dt>Recursive calls</dt><dd>Every call of a recursive function, including base cases. Max depth is the deepest the call stack got.</dd>
         <dt>Total operations</dt><dd>The sum of all of the above. This number depends only on the algorithm and the input, so it is the fair way to compare growth rates.</dd>
       </dl>
       <h3>How running time is measured</h3>
-      <p>Recording steps is slow, so each request runs the algorithm twice: once with step recording on, to collect the replay, and then five more times with recording off. The time shown is the median of those five silent runs, measured with <code>System.nanoTime()</code>. Times vary from run to run because of the Java JIT compiler and whatever else your computer is doing. Operation counts do not vary.</p>
+      <p>Recording steps is slow, so each request runs the algorithm twice: once with step recording on, to collect the replay, and then five more times with recording off. The time shown is the average of those five silent runs, measured with <code>System.nanoTime()</code>. Times vary from run to run because of the Java JIT compiler and whatever else your computer is doing. Operation counts do not vary.</p>
       <h3>Reading the complexity analysis</h3>
       <p>The analysis page runs algorithms on growing inputs and estimates their growth rate in two ways. The <em>growth exponent</em> is the slope of log(operations) against log(n): about 1 for O(n), about 1.1 for O(n log n), about 2 for O(n²). The <em>best-fit model</em> is the function f(n) for which operations ÷ f(n) stays most constant across your sizes. Try quick sort on random and then on already-sorted input to see the worst case appear.</p>
       <h3>Keyboard</h3>
+      <h3>Quick sort colours</h3>
+      <p>Quick sort takes the first element as the pivot (purple). During a partition the <strong>yellow</strong> part holds the values smaller than the pivot and the <strong>green</strong> part the values greater than or equal to it; the grey bars to their right have not been compared yet. At the end the pivot is swapped between yellow and green, into its final place.</p>
       <p>While a replay is loaded: <kbd>←</kbd> and <kbd>→</kbd> step backwards and forwards, <kbd>Space</kbd> plays or pauses, <kbd>Home</kbd> and <kbd>End</kbd> jump to the first and last step.</p>
     </section>
 
@@ -246,6 +272,7 @@
               <option value="60">60 steps/s</option>
             </select>
           </label>
+          <label class="speed" id="pass-toggle" hidden><input type="checkbox" id="passes"> After each pass only</label>
         </div>
         <p class="step-message" id="step-message"></p>
 

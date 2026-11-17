@@ -5,9 +5,11 @@ import explorer.core.Json;
 import explorer.ds.ArrayStack;
 import explorer.ds.BinarySearchTree;
 import explorer.ds.CircularQueue;
+import explorer.ds.DoublyLinkedList;
 import explorer.ds.DynamicArray;
 import explorer.ds.HashTable;
 import explorer.ds.IntList;
+import explorer.ds.LinearQueue;
 import explorer.ds.MinHeap;
 import explorer.ds.SinglyLinkedList;
 
@@ -18,14 +20,21 @@ import explorer.ds.SinglyLinkedList;
  */
 public final class DataStructures {
 
-    public static final String[] KINDS = {"stack", "queue", "list", "bst", "heap", "hash", "brackets", "expression"};
+    public static final String[] KINDS = {"stack", "linear-queue", "queue", "list", "dlist", "bst", "heap", "hash", "brackets", "expression"};
 
     private final boolean rec;
+    /** Capacity chosen by the user for the fixed-size stack and queues. */
+    private final int capacity;
     private final DynamicArray<String> steps = new DynamicArray<String>();
     public long totalOps;
     public String summary = "";
 
-    public DataStructures(boolean record) { this.rec = record; }
+    public DataStructures(boolean record) { this(record, 5); }
+
+    public DataStructures(boolean record, int capacity) {
+        this.rec = record;
+        this.capacity = capacity;
+    }
 
     public String stepsJson() {
         StringBuilder sb = new StringBuilder("[");
@@ -38,6 +47,7 @@ public final class DataStructures {
 
     public int stepCount() { return steps.size(); }
 
+    /** Records the result of one command: message, cost in basic operations and its Big-O. O(1). */
     private void step(String type, String msg, long cost, String big, String snap) {
         totalOps += cost;
         if (!rec) return;
@@ -63,6 +73,7 @@ public final class DataStructures {
         return out;
     }
 
+    /** Lower-case copy of s (written by hand). O(length). */
     private static String lower(String s) {
         StringBuilder b = new StringBuilder(s.length());
         for (int i = 0; i < s.length(); i++) {
@@ -72,10 +83,12 @@ public final class DataStructures {
         return b.toString();
     }
 
+    /** Checks that a command has enough arguments, otherwise shows its usage. O(1). */
     private static void need(DynamicArray<String> tok, int count, String usage) {
         if (tok.size() < count + 1) throw new IllegalArgumentException("Usage: " + usage);
     }
 
+    /** One stored value as JSON. O(1). */
     private static String value(Object o) {
         if (o == null) return "null";
         if (o instanceof Integer || o instanceof Long) return o.toString();
@@ -83,17 +96,21 @@ public final class DataStructures {
         return Json.quote(o.toString());
     }
 
+    /** A number without a trailing ".0". O(1). */
     static String fmt(double d) {
         if (d == (long) d && Math.abs(d) < 1e15) return String.valueOf((long) d);
         String s = String.valueOf(Math.round(d * 1e6) / 1e6);
         return s;
     }
 
+    /** Runs the user's script on the chosen structure. O(m) commands, each at the cost of its operation. */
     public void run(String kind, String script) {
         switch (kind) {
             case "stack": stack(script); break;
-            case "queue": queue(script); break;
-            case "list": list(script); break;
+            case "linear-queue": queue(script, false); break;
+            case "queue": queue(script, true); break;
+            case "list": list(script, false); break;
+            case "dlist": list(script, true); break;
             case "bst": bst(script); break;
             case "heap": heap(script); break;
             case "hash": hash(script); break;
@@ -103,7 +120,7 @@ public final class DataStructures {
         }
     }
 
-    // ------------------------------------------------------------------ Stack
+    // ------------------------------------------------------------------ Stack (fixed capacity set by the user)
     private <T> String stackSnap(ArrayStack<T> s, String extra) {
         StringBuilder items = new StringBuilder("[");
         for (int i = 0; i < s.size(); i++) {
@@ -116,8 +133,17 @@ public final class DataStructures {
         return j.end();
     }
 
+    /** Elements of the stack from bottom to top, e.g. "5 8 2". O(n). */
+    private static <T> String stackItems(ArrayStack<T> s) {
+        if (s.isEmpty()) return "(empty)";
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < s.size(); i++) { if (i > 0) b.append(' '); b.append(s.fromBottom(i)); }
+        return b.toString();
+    }
+
+    /** Runs a stack script on a fixed-capacity ArrayStack. Each push/pop/peek/size/isEmpty/isFull is O(1); display is O(n). */
     private void stack(String script) {
-        ArrayStack<Integer> s = new ArrayStack<Integer>(4);
+        ArrayStack<Integer> s = new ArrayStack<Integer>(capacity, true);
         DynamicArray<String> cmds = commands(script);
         for (int c = 0; c < cmds.size(); c++) {
             DynamicArray<String> tok = Input.tokens(cmds.get(c));
@@ -129,32 +155,37 @@ public final class DataStructures {
                         int v = Input.parseInt(tok.get(i), "push");
                         long before = s.ops;
                         s.push(v);
-                        String msg = "push(" + v + "): " + v + " is the new top";
-                        if (s.lastPushResized) msg += ". The array was full, so capacity doubled to " + s.capacity()
-                                + " (copying " + (s.size() - 1) + " items, which costs O(n) this once)";
-                        step("op", msg, s.ops - before, s.lastPushResized ? "O(n) resize, O(1) amortised" : "O(1)", rec ? stackSnap(s, null) : null);
+                        step("op", "Pushed " + v + ": it is the new top (" + s.size() + " of " + s.capacity() + " slots used)",
+                                s.ops - before, "O(1)", rec ? stackSnap(s, null) : null);
                     }
                 } else if (op.equals("pop")) {
                     long before = s.ops;
                     int v = s.pop();
-                    step("op", "pop() removed the top item " + v, s.ops - before, "O(1)", rec ? stackSnap(s, null) : null);
+                    step("op", "Popped " + v, s.ops - before, "O(1)", rec ? stackSnap(s, null) : null);
                 } else if (op.equals("peek") || op.equals("top")) {
                     long before = s.ops;
                     int v = s.peek();
-                    step("op", "peek() = " + v + " (the stack is unchanged)", s.ops - before, "O(1)", rec ? stackSnap(s, null) : null);
+                    step("op", "Peek: the top element is " + v + " (the stack is unchanged)", s.ops - before, "O(1)", rec ? stackSnap(s, null) : null);
                 } else if (op.equals("size")) {
-                    step("op", "size() = " + s.size(), 1, "O(1)", rec ? stackSnap(s, null) : null);
-                } else if (op.equals("isempty") || op.equals("empty")) {
-                    step("op", "isEmpty() = " + s.isEmpty(), 1, "O(1)", rec ? stackSnap(s, null) : null);
-                } else throw new IllegalArgumentException("Unknown stack command \"" + tok.get(0) + "\". Use push, pop, peek, size or isEmpty.");
+                    step("op", "Size: the stack holds " + s.size() + " element(s)", 1, "O(1)", rec ? stackSnap(s, null) : null);
+                } else if (op.equals("isempty") || op.equals("is_empty") || op.equals("empty")) {
+                    step("op", "is_empty: " + (s.isEmpty() ? "true, the stack is empty" : "false, the stack holds " + s.size() + " element(s)"),
+                            1, "O(1)", rec ? stackSnap(s, null) : null);
+                } else if (op.equals("isfull") || op.equals("is_full") || op.equals("full")) {
+                    step("op", "is_full: " + (s.isFull() ? "true, all " + s.capacity() + " slots are used" : "false, " + (s.capacity() - s.size()) + " slot(s) free"),
+                            1, "O(1)", rec ? stackSnap(s, null) : null);
+                } else if (op.equals("display") || op.equals("show")) {
+                    step("op", "Display (bottom → top): " + stackItems(s), s.size() + 1, "O(n)", rec ? stackSnap(s, null) : null);
+                } else throw new IllegalArgumentException("Unknown stack command \"" + tok.get(0)
+                        + "\". Use push, pop, peek, size, isEmpty, isFull or display.");
             } catch (IllegalStateException e) {
                 step("error", e.getMessage(), 0, "–", rec ? stackSnap(s, null) : null);
             }
         }
-        summary = "Stack holds " + s.size() + " item(s); top = " + (s.isEmpty() ? "none" : String.valueOf(s.fromBottom(s.size() - 1)));
+        summary = "Stack holds " + s.size() + " of " + s.capacity() + " item(s); top = " + (s.isEmpty() ? "none" : String.valueOf(s.fromBottom(s.size() - 1)));
     }
 
-    // ------------------------------------------------------------------ Queue
+    // ------------------------------------------------------------------ Queues (linear and circular, fixed capacity)
     private String queueSnap(CircularQueue<Integer> q) {
         StringBuilder items = new StringBuilder("[");
         for (int i = 0; i < q.size(); i++) { if (i > 0) items.append(','); items.append(q.fromFront(i)); }
@@ -166,44 +197,95 @@ public final class DataStructures {
                 .put("front", q.front()).put("rear", q.rear()).put("size", q.size()).put("cap", q.capacity()).end();
     }
 
-    private void queue(String script) {
-        CircularQueue<Integer> q = new CircularQueue<Integer>(4);
+    /** Snapshot of the linear queue: logical order plus the raw array with front and rear. O(capacity). */
+    private String linearSnap(LinearQueue<Integer> q) {
+        StringBuilder items = new StringBuilder("[");
+        for (int i = 0; i < q.size(); i++) { if (i > 0) items.append(','); items.append(q.fromFront(i)); }
+        items.append(']');
+        StringBuilder slots = new StringBuilder("[");
+        for (int i = 0; i < q.capacity(); i++) { if (i > 0) slots.append(','); slots.append(value(q.slot(i))); }
+        slots.append(']');
+        return Json.obj().put("kind", "queue").put("linear", true).raw("items", items.toString()).raw("slots", slots.toString())
+                .put("front", q.front()).put("rear", q.rear()).put("size", q.size()).put("cap", q.capacity())
+                .put("falseFull", q.isFalseFull()).end();
+    }
+
+    /** Elements from front to rear, e.g. "10 20 30". O(n). */
+    private static String queueItems(int size, CircularQueue<Integer> c, LinearQueue<Integer> l) {
+        if (size == 0) return "(empty)";
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < size; i++) { if (i > 0) b.append(' '); b.append(c != null ? c.fromFront(i) : l.fromFront(i)); }
+        return b.toString();
+    }
+
+    /** Runs a queue script. circular = true uses the ring buffer, false the linear queue. */
+    private void queue(String script, boolean circular) {
+        CircularQueue<Integer> cq = circular ? new CircularQueue<Integer>(capacity, true) : null;
+        LinearQueue<Integer> lq = circular ? null : new LinearQueue<Integer>(capacity);
         DynamicArray<String> cmds = commands(script);
         for (int c = 0; c < cmds.size(); c++) {
             DynamicArray<String> tok = Input.tokens(cmds.get(c));
             String op = lower(tok.get(0));
+            long before = circular ? cq.ops : lq.ops;
             try {
                 if (op.equals("enqueue") || op.equals("add") || op.equals("offer")) {
                     need(tok, 1, "enqueue <number> [more numbers]");
                     for (int i = 1; i < tok.size(); i++) {
                         int v = Input.parseInt(tok.get(i), "enqueue");
-                        long before = q.ops;
-                        q.enqueue(v);
-                        String msg = "enqueue(" + v + "): added at the rear";
-                        if (q.lastEnqueueResized) msg += ". The ring was full, so it was unrolled into an array of capacity " + q.capacity();
-                        step("op", msg, q.ops - before, q.lastEnqueueResized ? "O(n) resize, O(1) amortised" : "O(1)", rec ? queueSnap(q) : null);
+                        before = circular ? cq.ops : lq.ops;
+                        if (circular) {
+                            int slot = cq.rear();
+                            cq.enqueue(v);
+                            step("op", "Enqueued " + v + " into slot " + slot + "; rear moves to (" + slot + " + 1) mod " + cq.capacity() + " = " + cq.rear()
+                                    + (cq.rear() < slot ? " (it wrapped around to the start)" : ""), cq.ops - before, "O(1)", rec ? queueSnap(cq) : null);
+                        } else {
+                            int slot = lq.rear();
+                            lq.enqueue(v);
+                            step("op", "Enqueued " + v + " into slot " + slot + "; rear moves to " + lq.rear()
+                                    + (lq.isFalseFull() ? ". rear is now at the end of the array, so the queue counts as full although slots before front are free (false full)" : ""),
+                                    lq.ops - before, "O(1)", rec ? linearSnap(lq) : null);
+                        }
                     }
                 } else if (op.equals("dequeue") || op.equals("poll") || op.equals("remove")) {
-                    long before = q.ops;
-                    int v = q.dequeue();
-                    step("op", "dequeue() removed " + v + " from the front; front moves to slot " + q.front(),
-                            q.ops - before, "O(1)", rec ? queueSnap(q) : null);
-                } else if (op.equals("peek") || op.equals("front")) {
-                    long before = q.ops;
-                    int v = q.peek();
-                    step("op", "peek() = " + v, q.ops - before, "O(1)", rec ? queueSnap(q) : null);
+                    int oldFront = circular ? cq.front() : lq.front();
+                    int v = circular ? cq.dequeue() : lq.dequeue();
+                    String where = circular ? "front moves to (" + oldFront + " + 1) mod " + cq.capacity() + " = " + cq.front()
+                            + (cq.front() < oldFront ? " (it wrapped around to the start)" : "")
+                            : "front moves to slot " + lq.front() + "; the freed slot cannot be reused by a linear queue";
+                    step("op", "Dequeued " + v + "; " + where, (circular ? cq.ops : lq.ops) - before, "O(1)",
+                            rec ? (circular ? queueSnap(cq) : linearSnap(lq)) : null);
+                } else if (op.equals("front") || op.equals("peek")) {
+                    int v = circular ? cq.peek() : lq.peek();
+                    step("op", "Front: the front element is " + v + " (the queue is unchanged)", (circular ? cq.ops : lq.ops) - before, "O(1)",
+                            rec ? (circular ? queueSnap(cq) : linearSnap(lq)) : null);
                 } else if (op.equals("size")) {
-                    step("op", "size() = " + q.size(), 1, "O(1)", rec ? queueSnap(q) : null);
-                } else throw new IllegalArgumentException("Unknown queue command \"" + tok.get(0) + "\". Use enqueue, dequeue, peek or size.");
+                    int size = circular ? cq.size() : lq.size();
+                    step("op", "Size: the queue holds " + size + " element(s)", 1, "O(1)", rec ? (circular ? queueSnap(cq) : linearSnap(lq)) : null);
+                } else if (op.equals("isempty") || op.equals("is_empty") || op.equals("empty")) {
+                    boolean e = circular ? cq.isEmpty() : lq.isEmpty();
+                    step("op", "is_empty: " + e, 1, "O(1)", rec ? (circular ? queueSnap(cq) : linearSnap(lq)) : null);
+                } else if (op.equals("isfull") || op.equals("is_full") || op.equals("full")) {
+                    String msg;
+                    if (circular) msg = "is_full: " + cq.isFull() + " (" + cq.size() + " of " + cq.capacity() + " slots used)";
+                    else msg = "is_full: " + lq.isFull() + (lq.isFalseFull() ? ". This is a false full: only " + lq.size() + " of " + lq.capacity()
+                            + " slots hold items, but rear has reached the end of the array" : " (" + lq.size() + " of " + lq.capacity() + " slots used)");
+                    step("op", msg, 1, "O(1)", rec ? (circular ? queueSnap(cq) : linearSnap(lq)) : null);
+                } else if (op.equals("display") || op.equals("show")) {
+                    int size = circular ? cq.size() : lq.size();
+                    step("op", "Display (front → rear): " + queueItems(size, cq, lq), size + 1, "O(n)", rec ? (circular ? queueSnap(cq) : linearSnap(lq)) : null);
+                } else throw new IllegalArgumentException("Unknown queue command \"" + tok.get(0)
+                        + "\". Use enqueue, dequeue, front, size, isEmpty, isFull or display.");
             } catch (IllegalStateException e) {
-                step("error", e.getMessage(), 0, "–", rec ? queueSnap(q) : null);
+                step("error", e.getMessage(), 0, "–", rec ? (circular ? queueSnap(cq) : linearSnap(lq)) : null);
             }
         }
-        summary = "Queue holds " + q.size() + " item(s)" + (q.isEmpty() ? "" : "; front = " + q.fromFront(0));
+        if (circular) summary = "Circular queue holds " + cq.size() + " of " + cq.capacity() + " item(s)" + (cq.isEmpty() ? "" : "; front = " + cq.fromFront(0));
+        else summary = "Linear queue holds " + lq.size() + " of " + lq.capacity() + " item(s)" + (lq.isEmpty() ? "" : "; front = " + lq.fromFront(0))
+                + (lq.isFalseFull() ? "; it reports full (false full)" : "");
     }
 
-    // ------------------------------------------------------------------ Linked list
-    private String listSnap(SinglyLinkedList l) {
+    // ------------------------------------------------------------------ Linked lists (singly and doubly)
+    private String listSnap(SinglyLinkedList l, String out) {
         StringBuilder items = new StringBuilder("[");
         int i = 0;
         for (SinglyLinkedList.Node n = l.head(); n != null; n = n.next) {
@@ -213,73 +295,151 @@ public final class DataStructures {
         items.append(']');
         Json j = Json.obj().put("kind", "list").raw("items", items.toString());
         if (l.lastIndex >= 0) j.put("hi", new int[]{l.lastIndex});
+        if (out != null) j.put("out", out);
         return j.end();
     }
 
-    private void list(String script) {
-        SinglyLinkedList l = new SinglyLinkedList();
+    /** Snapshot of the doubly linked list from head to tail. O(n). */
+    private String dlistSnap(DoublyLinkedList l, String out) {
+        StringBuilder items = new StringBuilder("[");
+        int i = 0;
+        for (DoublyLinkedList.Node n = l.head(); n != null; n = n.next) {
+            if (i++ > 0) items.append(',');
+            items.append(n.value);
+        }
+        items.append(']');
+        Json j = Json.obj().put("kind", "list").put("doubly", true).raw("items", items.toString());
+        if (l.lastIndex >= 0) j.put("hi", new int[]{l.lastIndex});
+        if (out != null) j.put("out", out);
+        return j.end();
+    }
+
+    /** Runs a linked-list script. doubly = true uses DoublyLinkedList, false SinglyLinkedList. */
+    private void list(String script, boolean doubly) {
+        SinglyLinkedList sl = doubly ? null : new SinglyLinkedList();
+        DoublyLinkedList dl = doubly ? new DoublyLinkedList() : null;
         DynamicArray<String> cmds = commands(script);
         for (int c = 0; c < cmds.size(); c++) {
             DynamicArray<String> tok = Input.tokens(cmds.get(c));
             String op = lower(tok.get(0));
-            long before = l.ops;
+            long before = doubly ? dl.ops : sl.ops;
+            String out = null;
+            String msg;
+            String big;
             try {
-                if (op.equals("addfirst") || op.equals("prepend")) {
-                    need(tok, 1, "addFirst <number> [more numbers]");
+                if (op.equals("insertfirst") || op.equals("addfirst") || op.equals("prepend")) {
+                    need(tok, 1, "insertFirst <number> [more numbers]");
                     for (int i = 1; i < tok.size(); i++) {
-                        before = l.ops;
-                        int v = Input.parseInt(tok.get(i), "addFirst");
-                        l.addFirst(v);
-                        step("op", "addFirst(" + v + "): new node becomes the head", l.ops - before, "O(1)", rec ? listSnap(l) : null);
+                        before = doubly ? dl.ops : sl.ops;
+                        int v = Input.parseInt(tok.get(i), "insertFirst");
+                        if (doubly) dl.addFirst(v); else sl.addFirst(v);
+                        step("op", "Inserted " + v + " at the beginning: the new node becomes the head", (doubly ? dl.ops : sl.ops) - before, "O(1)",
+                                rec ? (doubly ? dlistSnap(dl, null) : listSnap(sl, null)) : null);
                     }
-                } else if (op.equals("addlast") || op.equals("append") || op.equals("add")) {
-                    need(tok, 1, "addLast <number> [more numbers]");
+                    continue;
+                } else if (op.equals("insertlast") || op.equals("addlast") || op.equals("append") || op.equals("add")) {
+                    need(tok, 1, "insertLast <number> [more numbers]");
                     for (int i = 1; i < tok.size(); i++) {
-                        before = l.ops;
-                        int v = Input.parseInt(tok.get(i), "addLast");
-                        l.addLast(v);
-                        step("op", "addLast(" + v + "): linked after the tail (we keep a tail pointer)", l.ops - before, "O(1)", rec ? listSnap(l) : null);
+                        before = doubly ? dl.ops : sl.ops;
+                        int v = Input.parseInt(tok.get(i), "insertLast");
+                        if (doubly) dl.addLast(v); else sl.addLast(v);
+                        step("op", "Inserted " + v + " at the end: linked after the tail (we keep a tail pointer)", (doubly ? dl.ops : sl.ops) - before, "O(1)",
+                                rec ? (doubly ? dlistSnap(dl, null) : listSnap(sl, null)) : null);
                     }
+                    continue;
+                } else if (op.equals("insertbefore")) {
+                    need(tok, 2, "insertBefore <given element> <new value>");
+                    int x = Input.parseInt(tok.get(1), "given element");
+                    int v = Input.parseInt(tok.get(2), "new value");
+                    if (doubly) dl.insertBefore(x, v); else sl.insertBefore(x, v);
+                    msg = "Inserted " + v + " before " + x + (doubly ? ": found " + x + ", then linked through its prev pointer"
+                            : ": walked to the node before " + x + ", then re-linked");
+                    big = "O(n)";
+                } else if (op.equals("insertafter")) {
+                    need(tok, 2, "insertAfter <given element> <new value>");
+                    int x = Input.parseInt(tok.get(1), "given element");
+                    int v = Input.parseInt(tok.get(2), "new value");
+                    if (doubly) dl.insertAfter(x, v); else sl.insertAfter(x, v);
+                    msg = "Inserted " + v + " after " + x;
+                    big = "O(n)";
                 } else if (op.equals("insert") || op.equals("insertat")) {
+                    if (doubly) throw new IllegalArgumentException("Use insertFirst, insertLast, insertBefore or insertAfter for the doubly linked list.");
                     need(tok, 2, "insert <position> <number>");
                     int pos = Input.parseInt(tok.get(1), "position");
                     int v = Input.parseInt(tok.get(2), "value");
-                    l.insertAt(pos, v);
-                    step("op", "insert(" + pos + ", " + v + "): walked " + (pos > 0 ? pos - 1 : 0) + " link(s) to the node before position " + pos,
-                            l.ops - before, "O(n)", rec ? listSnap(l) : null);
-                } else if (op.equals("removefirst")) {
-                    int v = l.removeFirst();
-                    step("op", "removeFirst() removed " + v, l.ops - before, "O(1)", rec ? listSnap(l) : null);
-                } else if (op.equals("remove") || op.equals("delete")) {
-                    need(tok, 1, "remove <value>");
+                    sl.insertAt(pos, v);
+                    msg = "Inserted " + v + " at position " + pos + ": walked " + (pos > 0 ? pos - 1 : 0) + " link(s) to the node before it";
+                    big = "O(n)";
+                } else if (op.equals("deletefirst") || op.equals("removefirst")) {
+                    int v = doubly ? dl.removeFirst() : sl.removeFirst();
+                    msg = "Deleted " + v + " from the beginning: head moves to the next node";
+                    big = "O(1)";
+                } else if (op.equals("deletelast") || op.equals("removelast")) {
+                    int v = doubly ? dl.removeLast() : sl.removeLast();
+                    msg = "Deleted " + v + " from the end" + (doubly ? ": tail.prev becomes the new tail, no walk needed"
+                            : ": walked to the node before the tail, because a singly linked node cannot see its predecessor");
+                    big = doubly ? "O(1)" : "O(n)";
+                } else if (op.equals("deletebefore") || op.equals("removebefore")) {
+                    need(tok, 1, "deleteBefore <given element>");
+                    int x = Input.parseInt(tok.get(1), "given element");
+                    int v = doubly ? dl.removeBefore(x) : sl.removeBefore(x);
+                    msg = "Deleted " + v + ", the node before " + x;
+                    big = "O(n)";
+                } else if (op.equals("deleteafter") || op.equals("removeafter")) {
+                    need(tok, 1, "deleteAfter <given element>");
+                    int x = Input.parseInt(tok.get(1), "given element");
+                    int v = doubly ? dl.removeAfter(x) : sl.removeAfter(x);
+                    msg = "Deleted " + v + ", the node after " + x;
+                    big = "O(n)";
+                } else if (op.equals("delete") || op.equals("remove")) {
+                    need(tok, 1, "delete <value>");
                     int v = Input.parseInt(tok.get(1), "value");
-                    int idx = l.removeValue(v);
-                    step(idx >= 0 ? "op" : "error", idx >= 0 ? "remove(" + v + "): found at position " + idx + " and unlinked"
-                            : "remove(" + v + "): " + v + " is not in the list", l.ops - before, "O(n)", rec ? listSnap(l) : null);
+                    int idx = doubly ? dl.removeValue(v) : sl.removeValue(v);
+                    if (idx < 0) throw new IllegalStateException(v + " is not in the list, so nothing was deleted");
+                    msg = "Deleted " + v + ": found at position " + idx + " and unlinked";
+                    big = "O(n)";
                 } else if (op.equals("search") || op.equals("find") || op.equals("indexof")) {
                     need(tok, 1, "search <value>");
                     int v = Input.parseInt(tok.get(1), "value");
-                    int idx = l.indexOf(v);
-                    step("op", idx >= 0 ? "search(" + v + "): found at position " + idx + " after " + (idx + 1) + " node visit(s)"
-                            : "search(" + v + "): not found after visiting all " + l.size() + " nodes", l.ops - before, "O(n)", rec ? listSnap(l) : null);
+                    int idx = doubly ? dl.indexOf(v) : sl.indexOf(v);
+                    int size = doubly ? dl.size() : sl.size();
+                    msg = idx >= 0 ? "Search " + v + ": found at position " + idx + " after " + (idx + 1) + " node visit(s)"
+                            : "Search " + v + ": not found after visiting all " + size + " node(s)";
+                    big = "O(n)";
                 } else if (op.equals("get")) {
+                    if (doubly) throw new IllegalArgumentException("get is only provided for the singly linked list.");
                     need(tok, 1, "get <position>");
                     int pos = Input.parseInt(tok.get(1), "position");
-                    int v = l.get(pos);
-                    step("op", "get(" + pos + ") = " + v + ". A linked list has no random access, so we walk from the head",
-                            l.ops - before, "O(n)", rec ? listSnap(l) : null);
+                    int v = sl.get(pos);
+                    msg = "get(" + pos + ") = " + v + ". A linked list has no random access, so we walk from the head";
+                    big = "O(n)";
                 } else if (op.equals("reverse")) {
-                    l.reverse();
-                    step("op", "reverse(): every next pointer now points backwards", l.ops - before, "O(n)", rec ? listSnap(l) : null);
+                    if (doubly) throw new IllegalArgumentException("reverse is only provided for the singly linked list.");
+                    sl.reverse();
+                    msg = "Reversed: every next pointer now points backwards";
+                    big = "O(n)";
                 } else if (op.equals("size")) {
-                    step("op", "size() = " + l.size(), 1, "O(1)", rec ? listSnap(l) : null);
+                    msg = "Size: the list has " + (doubly ? dl.size() : sl.size()) + " node(s)";
+                    big = "O(1)";
+                    before -= 1;
+                } else if (op.equals("display") || op.equals("displayforward") || op.equals("show")) {
+                    out = doubly ? dl.displayForward() : sl.display();
+                    msg = "Display forward: " + out;
+                    big = "O(n)";
+                } else if (op.equals("displaybackward") || op.equals("backward")) {
+                    if (!doubly) throw new IllegalArgumentException("A singly linked list has no prev pointers, so it cannot be displayed backward. Choose the doubly linked list.");
+                    out = dl.displayBackward();
+                    msg = "Display backward: " + out;
+                    big = "O(n)";
                 } else throw new IllegalArgumentException("Unknown list command \"" + tok.get(0)
-                        + "\". Use addFirst, addLast, insert, removeFirst, remove, search, get, reverse or size.");
+                        + "\". Use insertFirst, insertLast, insertBefore, insertAfter, deleteFirst, deleteLast, deleteBefore, deleteAfter, delete, search, size, display"
+                        + (doubly ? " or displayBackward." : ", insert, get or reverse."));
+                step("op", msg, (doubly ? dl.ops : sl.ops) - before, big, rec ? (doubly ? dlistSnap(dl, out) : listSnap(sl, out)) : null);
             } catch (IllegalStateException | IndexOutOfBoundsException e) {
-                step("error", e.getMessage(), 0, "–", rec ? listSnap(l) : null);
+                step("error", e.getMessage(), 0, "–", rec ? (doubly ? dlistSnap(dl, null) : listSnap(sl, null)) : null);
             }
         }
-        summary = "List has " + l.size() + " node(s)";
+        summary = (doubly ? "Doubly" : "Singly") + " linked list has " + (doubly ? dl.size() : sl.size()) + " node(s)";
     }
 
     // ------------------------------------------------------------------ Binary search tree
@@ -288,12 +448,14 @@ public final class DataStructures {
         return "{\"k\":" + n.key + ",\"l\":" + treeJson(n.left) + ",\"r\":" + treeJson(n.right) + "}";
     }
 
+    /** Snapshot of the tree and the path followed by the last operation. O(n). */
     private String bstSnap(BinarySearchTree t, String out) {
         Json j = Json.obj().put("kind", "tree").raw("root", treeJson(t.root())).put("path", t.path().toArray());
         if (out != null) j.raw("out", out);
         return j.end();
     }
 
+    /** Runs a binary search tree script. insert/search/delete are O(h); traversals and height are O(n). */
     private void bst(String script) {
         BinarySearchTree t = new BinarySearchTree();
         DynamicArray<String> cmds = commands(script);
@@ -351,6 +513,7 @@ public final class DataStructures {
         summary = "Tree has " + t.size() + " node(s), height " + t.height(t.root());
     }
 
+    /** floor(log2 n): the height of a perfectly balanced tree with n nodes. O(log n). */
     private static int floorLog2(int n) {
         int h = -1;
         while (n > 0) { n >>= 1; h++; }
@@ -364,6 +527,7 @@ public final class DataStructures {
         return Json.obj().put("kind", "heap").put("items", items).put("hi", h.touched.toArray()).end();
     }
 
+    /** Runs a min-heap script. insert and extractMin are O(log n), peek O(1), build O(n). */
     private void heap(String script) {
         MinHeap h = new MinHeap();
         DynamicArray<String> cmds = commands(script);
@@ -423,6 +587,7 @@ public final class DataStructures {
                 .put("size", t.size()).end();
     }
 
+    /** Runs a hash table script. put/get/remove are O(1) on average, O(n) if every key collides. */
     private void hash(String script) {
         HashTable<String> t = new HashTable<String>(8);
         DynamicArray<String> cmds = commands(script);
@@ -458,6 +623,7 @@ public final class DataStructures {
         return close == ')' ? '(' : close == ']' ? '[' : '{';
     }
 
+    /** Balanced brackets with our stack: push openers, pop and match closers, show the stack after each symbol. O(n). */
     private void brackets(String text) {
         if (text == null || text.trim().length() == 0) throw new IllegalArgumentException("Type some text with brackets, e.g. {[a+b]*(c-d)}");
         if (text.length() > 500) throw new IllegalArgumentException("Keep the text under 500 characters.");
@@ -469,7 +635,7 @@ public final class DataStructures {
             long before = s.ops;
             if (ch == '(' || ch == '[' || ch == '{') {
                 s.push(String.valueOf(ch));
-                step("op", "'" + ch + "' at position " + i + " opens a group: push it", s.ops - before, "O(1)",
+                step("op", "'" + ch + "' at position " + i + " opens a group: push it. Stack: " + stackItems(s), s.ops - before, "O(1)",
                         rec ? stackSnap(s, Json.obj().put("text", text).put("pos", i).end()) : null);
             } else if (ch == ')' || ch == ']' || ch == '}') {
                 if (s.isEmpty()) {
@@ -483,10 +649,14 @@ public final class DataStructures {
                         why = "'" + ch + "' at position " + i + " closes '" + top + "', which does not match";
                         step("error", why, s.ops - before + 1, "O(1)", rec ? stackSnap(s, Json.obj().put("text", text).put("pos", i).end()) : null);
                     } else {
-                        step("op", "'" + ch + "' matches the top '" + top + "': pop it", s.ops - before + 1, "O(1)",
+                        step("op", "'" + ch + "' matches the top '" + top + "': pop it. Stack: " + stackItems(s), s.ops - before + 1, "O(1)",
                                 rec ? stackSnap(s, Json.obj().put("text", text).put("pos", i).end()) : null);
                     }
                 }
+            } else if (ch != ' ' && ch != '\t' && ch != '\n' && ch != '\r') {
+                // not a bracket: nothing happens, but we still show the stack after this symbol
+                step("op", "'" + ch + "' is not a bracket: the stack is unchanged. Stack: " + stackItems(s), 0, "O(1)",
+                        rec ? stackSnap(s, Json.obj().put("text", text).put("pos", i).end()) : null);
             }
         }
         if (ok && !s.isEmpty()) {
@@ -507,12 +677,15 @@ public final class DataStructures {
         return 1; // + -
     }
 
+    /** True for operators that group from the right (^ and unary minus). O(1). */
     private static boolean rightAssoc(String op) { return op.equals("^") || op.equals("u-"); }
 
+    /** True if s is one of our operators. O(1). */
     private static boolean isOp(String s) {
         return s.equals("+") || s.equals("-") || s.equals("*") || s.equals("/") || s.equals("%") || s.equals("^") || s.equals("u-");
     }
 
+    /** Splits an expression into numbers, operators and brackets. O(length). */
     private static DynamicArray<String> lex(String e) {
         DynamicArray<String> out = new DynamicArray<String>();
         int i = 0;
@@ -538,6 +711,7 @@ public final class DataStructures {
         return out;
     }
 
+    /** Snapshot of the stack and the postfix output for the expression evaluator. O(n). */
     private String exprSnap(ArrayStack<String> ops, DynamicArray<String> output, String phase, ArrayStack<Double> vals) {
         Json j = Json.obj().put("kind", "expr").put("phase", phase);
         StringBuilder o = new StringBuilder("[");
@@ -553,6 +727,7 @@ public final class DataStructures {
         return j.end();
     }
 
+    /** Infix → postfix with the shunting-yard algorithm, then evaluates the postfix with a value stack. O(n). */
     private void expression(String text) {
         if (text == null || text.trim().length() == 0) throw new IllegalArgumentException("Type an expression such as 3 + 4 * (2 - 1) ^ 2");
         if (text.length() > 300) throw new IllegalArgumentException("Keep the expression under 300 characters.");
@@ -633,6 +808,7 @@ public final class DataStructures {
         summary = "Value: " + fmt(vals.peek()) + ", postfix form: " + postfix;
     }
 
+    /** Parses a decimal number by hand. O(length). */
     private static double parseNumber(String s) {
         double v = 0, scale = 0;
         boolean dot = false;

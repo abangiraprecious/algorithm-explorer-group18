@@ -15,7 +15,7 @@ import explorer.ds.DynamicArray;
 public final class Analyzer {
     private Analyzer() {}
 
-    public static final String[] ARRAY_KEYS = {"bubble", "selection", "insertion", "merge", "quick", "heap", "counting", "linear", "binary"};
+    public static final String[] ARRAY_KEYS = {"bubble", "selection", "insertion", "merge", "quick", "quick-random", "heap", "counting", "linear", "binary"};
     public static final String[] RECURSION_KEYS = {"fib-naive", "fib-memo", "hanoi", "factorial", "power"};
 
     // ------------------------------------------------------------------ input generation
@@ -56,7 +56,7 @@ public final class Analyzer {
     private static int maxN(String key, String input) {
         switch (key) {
             case "bubble": case "selection": case "insertion": return 30000;
-            case "quick": return (input.equals("sorted") || input.equals("reversed") || input.equals("few")) ? 30000 : 1_000_000;
+            case "quick": return (input.equals("sorted") || input.equals("reversed") || input.equals("few")) ? 100_000 : 1_000_000;
             case "fib-naive": return 32;
             case "hanoi": return 24;
             case "fib-memo": return 90;
@@ -74,7 +74,7 @@ public final class Analyzer {
             case "selection": return "n²";
             case "quick": return (input.equals("sorted") || input.equals("reversed")) ? "n²"
                     : input.equals("few") ? "n² (many equal keys)" : "n log n";
-            case "merge": case "heap": return "n log n";
+            case "merge": case "heap": case "quick-random": return "n log n";
             case "counting": return "n + k";
             case "linear": return "n";
             case "binary": case "power": return "log n";
@@ -129,7 +129,7 @@ public final class Analyzer {
                 if (!Sorting.isSorted(a)) throw new IllegalStateException(key + " produced an unsorted result");
             }
         }
-        p.ns = median(times);
+        p.ns = average(times);
         return p;
     }
 
@@ -152,17 +152,11 @@ public final class Analyzer {
         }
     }
 
-    /** Median via our own insertion sort on a small array (no library sort). */
-    private static long median(long[] v) {
-        long[] a = new long[v.length];
-        for (int i = 0; i < v.length; i++) a[i] = v[i];
-        for (int i = 1; i < a.length; i++) {
-            long key = a[i];
-            int j = i - 1;
-            while (j >= 0 && a[j] > key) { a[j + 1] = a[j]; j--; }
-            a[j + 1] = key;
-        }
-        return a[a.length / 2];
+    /** Average of the timed runs: the brief asks for the average of at least 3 runs. O(k). */
+    private static long average(long[] v) {
+        long sum = 0;
+        for (int i = 0; i < v.length; i++) sum += v[i];
+        return sum / v.length;
     }
 
     // ------------------------------------------------------------------ curve fitting

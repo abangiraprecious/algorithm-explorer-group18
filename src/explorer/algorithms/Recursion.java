@@ -31,6 +31,19 @@ public final class Recursion {
         return r;
     }
 
+    // ---------------- Factorial, iterative: one loop, n − 1 iterations  →  O(n) time, O(1) space ----------------
+    public static long factorialIterative(int n, Tracer t) {
+        long r = 1;
+        if (n <= 1 && t.on()) t.note("base", n + "! = 1 (the loop body never runs)", null, null);
+        for (int i = 2; i <= n; i++) {
+            t.iterations++;
+            r = r * i;
+            t.arith++;
+            if (t.on()) t.note("loop", "i = " + i + ": result = " + (r / i) + " × " + i + " = " + r, null, null);
+        }
+        return r;
+    }
+
     // ---------------- Fibonacci, naive: T(n) = T(n-1) + T(n-2) + O(1)  →  O(φ^n) ≈ O(2^n) ----------------
     public static long fibNaive(int n, Tracer t) {
         String label = !t.rec() ? null : "fib(" + n + ")";
@@ -54,6 +67,7 @@ public final class Recursion {
         return fibMemo(n, memo, t);
     }
 
+    /** Memoised fib(n): returns memo[n] if it is already known, otherwise computes it once and stores it. O(n) overall. */
     private static long fibMemo(int n, long[] memo, Tracer t) {
         String label = !t.rec() ? null : "fib(" + n + ")";
         int id = t.enter(label);
@@ -76,60 +90,74 @@ public final class Recursion {
         return r;
     }
 
-    // ---------------- Fibonacci, iterative (no recursion, for comparison): O(n) time, O(1) space ----------------
-    public static long fibIterative(int n, Tracer t) {
-        long prev = 0, cur = 1;
-        if (n == 0) { if (t.on()) t.note("info", "fib(0) = 0", null, null); return 0; }
+    // ---------------- Fibonacci, bottom-up dynamic programming: fill table[0..n] from the bottom  →  O(n) time, O(n) space ----------------
+    public static long fibBottomUp(int n, Tracer t) {
+        long[] table = new long[n + 2];
+        table[0] = 0;
+        table[1] = 1;
+        t.writes += 2;
+        if (t.on()) t.note("info", "table[0] = 0 and table[1] = 1 are the base cases", null, null);
         for (int i = 2; i <= n; i++) {
-            long next = prev + cur;
+            t.iterations++;
+            table[i] = table[i - 1] + table[i - 2];
             t.arith++;
-            prev = cur;
-            cur = next;
-            t.writes += 2;
-            if (t.on()) t.note("loop", "i = " + i + ": fib(" + i + ") = " + prev + " + " + (cur - prev) + " = " + cur, null, null);
+            t.writes++;
+            if (t.on()) t.note("loop", "i = " + i + ": table[" + i + "] = table[" + (i - 1) + "] + table[" + (i - 2) + "] = "
+                    + table[i - 1] + " + " + table[i - 2] + " = " + table[i], null, null);
         }
-        return cur;
+        return table[n];
     }
 
     // ---------------- Tower of Hanoi: T(n) = 2T(n-1) + 1  →  2^n − 1 moves ----------------
     private static final String[] PEG = {"A", "B", "C"};
 
-    public static long hanoi(int n, Tracer t) {
+    /**
+     * Solves Hanoi for n disks from peg `from` to peg `to` using peg `via` (0 = A, 1 = B, 2 = C).
+     * Every move is added to `moveList` (when it is not null). Returns the number of moves. O(2^n).
+     */
+    public static long hanoi(int n, int from, int to, int via, DynamicArray<String> moveList, Tracer t) {
         DynamicArray<ArrayStack<Integer>> pegs = new DynamicArray<ArrayStack<Integer>>(3);
         for (int i = 0; i < 3; i++) pegs.add(new ArrayStack<Integer>());
-        for (int d = n; d >= 1; d--) pegs.get(0).push(d);
+        for (int d = n; d >= 1; d--) pegs.get(from).push(d);
         long[] moves = new long[1];
-        if (t.on()) t.note("info", "Start: " + n + " disks on peg A. Goal: move them all to peg C.", "pegs", pegsJson(pegs));
-        hanoi(n, 0, 2, 1, pegs, moves, t);
-        if (t.on()) t.note("done", "Finished in " + moves[0] + " moves (2^" + n + " − 1 = " + ((1L << n) - 1) + ")",
-                "pegs", pegsJson(pegs));
+        if (t.on()) t.note("info", "Start: " + n + " disks on peg " + PEG[from] + ". Goal: move them all to peg " + PEG[to]
+                + " using peg " + PEG[via] + " as the auxiliary.", "pegs", pegsJson(pegs));
+        hanoi(n, from, to, via, pegs, moves, moveList, t);
+        if (t.on()) t.note("done", "Finished: all " + n + " disks are on peg " + PEG[to] + " after " + moves[0]
+                + " moves, and 2^" + n + " − 1 = " + ((1L << n) - 1), "pegs", pegsJson(pegs));
         return moves[0];
     }
 
+    /** Default puzzle: from A to C using B. */
+    public static long hanoi(int n, Tracer t) { return hanoi(n, 0, 2, 1, null, t); }
+
     private static void hanoi(int n, int from, int to, int via, DynamicArray<ArrayStack<Integer>> pegs,
-                              long[] moves, Tracer t) {
+                              long[] moves, DynamicArray<String> moveList, Tracer t) {
         String label = !t.rec() ? null : "hanoi(" + n + ", " + PEG[from] + "→" + PEG[to] + ")";
         int id = t.enter(label);
         t.comparisons++;
         if (n == 1) {
-            move(from, to, pegs, moves, t);
+            move(from, to, pegs, moves, moveList, t);
         } else {
-            hanoi(n - 1, from, via, to, pegs, moves, t);
-            move(from, to, pegs, moves, t);
-            hanoi(n - 1, via, to, from, pegs, moves, t);
+            hanoi(n - 1, from, via, to, pegs, moves, moveList, t);   // clear the n−1 smaller disks onto the auxiliary peg
+            move(from, to, pegs, moves, moveList, t);                // move the largest disk
+            hanoi(n - 1, via, to, from, pegs, moves, moveList, t);   // put the n−1 disks back on top of it
         }
         t.exit(id, label, "done");
     }
 
-    private static void move(int from, int to, DynamicArray<ArrayStack<Integer>> pegs, long[] moves, Tracer t) {
+    private static void move(int from, int to, DynamicArray<ArrayStack<Integer>> pegs, long[] moves,
+                             DynamicArray<String> moveList, Tracer t) {
         int disk = pegs.get(from).pop();
         pegs.get(to).push(disk);
         moves[0]++;
         t.writes++;
+        if (moveList != null) moveList.add("Move disk " + disk + " from " + PEG[from] + " to " + PEG[to]);
         if (t.on()) t.note("move", "Move " + moves[0] + ": disk " + disk + " from " + PEG[from] + " to " + PEG[to],
                 "pegs", pegsJson(pegs));
     }
 
+    /** The three pegs as JSON, bottom disk first. O(n) for n disks. */
     private static String pegsJson(DynamicArray<ArrayStack<Integer>> pegs) {
         StringBuilder sb = new StringBuilder("[");
         for (int p = 0; p < 3; p++) {
@@ -171,6 +199,7 @@ public final class Recursion {
         return r;
     }
 
+    /** a × b, with an error instead of a silent 64-bit overflow. O(1). */
     private static long mulChecked(long a, long b) {
         long r = a * b;
         // overflow check without Math.multiplyExact: division must give back the other factor
@@ -204,6 +233,7 @@ public final class Recursion {
         return out;
     }
 
+    /** Fixes position k with each remaining character in turn, recurses, then swaps back (backtracking). O(n · n!). */
     private static void permute(char[] c, int k, DynamicArray<String> out, Tracer t) {
         String label = !t.rec() ? null : "perm(\"" + new String(c, 0, k) + "|" + new String(c, k, c.length - k) + "\")";
         int id = t.enter(label);
@@ -221,6 +251,7 @@ public final class Recursion {
         t.exit(id, label, t.rec() ? (k == c.length ? "\"" + new String(c) + "\"" : "done") : null);
     }
 
+    /** Exchanges c[i] and c[j] and counts one swap. O(1). */
     private static void swapChars(char[] c, int i, int j, Tracer t) {
         char tmp = c[i]; c[i] = c[j]; c[j] = tmp;
         t.swaps++;
@@ -231,6 +262,7 @@ public final class Recursion {
         return pal(s, 0, s.length() - 1, t);
     }
 
+    /** True if s[lo..hi] is a palindrome: compare the outer pair, then recurse on the inside. O(n). */
     private static boolean pal(String s, int lo, int hi, Tracer t) {
         String label = !t.rec() ? null : "isPal(" + lo + ", " + hi + ")";
         int id = t.enter(label);

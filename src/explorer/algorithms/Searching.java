@@ -13,6 +13,7 @@ public final class Searching {
 
     public static final String[] KEYS = {"linear", "binary", "binary-rec"};
 
+    /** Runs the search called key and returns the index found, or -1. Cost of the chosen search. */
     public static int run(String key, int[] a, int target, Tracer t) {
         switch (key) {
             case "linear": return linear(a, target, t);
@@ -22,6 +23,7 @@ public final class Searching {
         }
     }
 
+    /** Records one step: the active range [lo, hi] and the index being checked. O(1). */
     private static void step(Tracer t, String type, String msg, int lo, int hi, int idx) {
         Json j = Json.obj().put("t", type).put("m", msg);
         if (lo >= 0 && lo <= hi) j.put("r", new int[]{lo, hi});
@@ -29,6 +31,7 @@ public final class Searching {
         t.add(j.end());
     }
 
+    /** Linear search: checks a[0], a[1], … until the target is found. O(n) worst and average, O(1) best. */
     public static int linear(int[] a, int target, Tracer t) {
         for (int i = 0; i < a.length; i++) {
             t.comparisons++;
@@ -42,6 +45,7 @@ public final class Searching {
         return -1;
     }
 
+    /** Iterative binary search on sorted a: halves the range each time. O(log n), O(1) extra space. */
     public static int binary(int[] a, int target, Tracer t) {
         int lo = 0, hi = a.length - 1;
         while (lo <= hi) {
@@ -66,12 +70,14 @@ public final class Searching {
         return -1;
     }
 
+    /** Recursive binary search on sorted a. O(log n) time and O(log n) call stack. */
     public static int binaryRecursive(int[] a, int target, Tracer t) {
         int r = bs(a, target, 0, a.length - 1, t);
         if (r < 0 && t.on()) step(t, "done", target + " is not in the array", -1, -1, -1);
         return r;
     }
 
+    /** One call of the recursive binary search on a[lo..hi]: T(n) = T(n/2) + O(1). */
     private static int bs(int[] a, int target, int lo, int hi, Tracer t) {
         String label = !t.rec() ? null : "search(" + lo + ", " + hi + ")";
         int id = t.enter(label);

@@ -26,17 +26,11 @@ public final class Api {
         return false;
     }
 
-    private static long median(long[] v) {
-        // insertion sort on our own copy – no library sort anywhere
-        long[] a = new long[v.length];
-        for (int i = 0; i < v.length; i++) a[i] = v[i];
-        for (int i = 1; i < a.length; i++) {
-            long k = a[i];
-            int j = i - 1;
-            while (j >= 0 && a[j] > k) { a[j + 1] = a[j]; j--; }
-            a[j + 1] = k;
-        }
-        return a[a.length / 2];
+    /** Average of the timed runs (the brief asks for the average of repeated runs). O(k) for k runs. */
+    private static long average(long[] v) {
+        long sum = 0;
+        for (int i = 0; i < v.length; i++) sum += v[i];
+        return sum / v.length;
     }
 
     // ------------------------------------------------------------------ /run/sort
@@ -53,7 +47,7 @@ public final class Api {
         Sorting.run(algo, work, traced);
         if (!Sorting.isSorted(work)) throw new IllegalStateException(algo + " did not sort the array");
 
-        // 2) timed runs – no step recording, median of several trials
+        // 2) timed runs – no step recording, average of several trials
         long[] times = new long[TIMING_TRIALS];
         for (int t = 0; t < TIMING_TRIALS; t++) {
             int[] c = Input.copy(input);
@@ -69,9 +63,44 @@ public final class Api {
                 .put("output", n <= 2000 ? work : null)
                 .put("result", "Sorted " + n + " number(s)" + (n > 2000 ? " (too many to list)" : ""))
                 .raw("counts", traced.countsJson())
-                .put("timeNs", median(times)).put("trials", TIMING_TRIALS)
+                .put("timeNs", average(times)).put("trials", TIMING_TRIALS)
                 .put("traceOn", traceOn).put("truncated", traced.truncated())
                 .raw("steps", traced.stepsJson()).end();
+    }
+
+    // ------------------------------------------------------------------ /run/compare  ("Compare all" button)
+    /**
+     * Runs bubble, selection, insertion, merge and quick sort (both pivots) on the SAME input and
+     * returns one row per algorithm: comparisons, swaps, writes and the average time of 3 runs.
+     */
+    public static String compare(Params p) {
+        int[] input = Input.parseInts(p.require("values", "the numbers to sort"), 20000);
+        int trials = 3;
+        StringBuilder rows = new StringBuilder("[");
+        for (int k = 0; k < Sorting.COMPARE_KEYS.length; k++) {
+            String algo = Sorting.COMPARE_KEYS[k];
+            // warm up the JIT first so the first algorithm in the table is not unfairly slow
+            int warm = input.length <= 2000 ? 20 : 1;
+            for (int w = 0; w < warm; w++) Sorting.run(algo, Input.copy(input), Tracer.silent());
+            Tracer counted = Tracer.silent();
+            int[] work = Input.copy(input);
+            Sorting.run(algo, work, counted);
+            if (!Sorting.isSorted(work)) throw new IllegalStateException(algo + " did not sort the array");
+            long[] times = new long[trials];
+            for (int t = 0; t < trials; t++) {
+                int[] c = Input.copy(input);
+                long start = System.nanoTime();
+                Sorting.run(algo, c, Tracer.silent());
+                times[t] = System.nanoTime() - start;
+            }
+            if (k > 0) rows.append(',');
+            rows.append(Json.obj().put("algo", algo).put("name", Catalog.name(algo))
+                    .raw("counts", counted.countsJson()).put("timeNs", average(times))
+                    .raw("theory", Catalog.get(algo)).end());
+        }
+        rows.append(']');
+        return Json.obj().put("category", "compare").put("n", input.length).put("trials", trials)
+                .raw("rows", rows.toString()).end();
     }
 
     // ------------------------------------------------------------------ /run/search
@@ -104,7 +133,7 @@ public final class Api {
                 .put("note", note)
                 .put("result", idx >= 0 ? "Found " + target + " at index " + idx : target + " was not found")
                 .raw("counts", traced.countsJson())
-                .put("timeNs", median(times)).put("trials", TIMING_TRIALS)
+                .put("timeNs", average(times)).put("trials", TIMING_TRIALS)
                 .put("traceOn", a.length <= 2000).put("truncated", traced.truncated())
                 .raw("steps", a.length <= 2000 ? traced.stepsJson() : "[]").end();
     }
@@ -117,17 +146,30 @@ public final class Api {
         final String arg = p.require("arg", "an input value").trim();
         RecRun job;
         String extraKey = null;
+        String note = null;
+        int stepLimit = 2500;
         final DynamicArray<String>[] perms = newPermHolder();
 
         switch (algo) {
             case "factorial": {
-                final int n = Input.intInRange(arg, "n", 0, 20);
-                job = t -> n + "! = " + Recursion.factorial(n, t);
+                final int n = factorialArg(arg);
+                job = t -> n + "! = " + Recursion.factorial(n, t) + " (recursive)";
+                break;
+            }
+            case "factorial-iter": {
+                final int n = factorialArg(arg);
+                job = t -> n + "! = " + Recursion.factorialIterative(n, t) + " (iterative)";
                 break;
             }
             case "fib-naive": {
-                final int n = Input.intInRange(arg, "n", 0, 32);
+                final int n = Input.parseInt(arg, "n");
+                if (n < 0) throw new IllegalArgumentException("n must be 0 or more: Fibonacci numbers are not defined for negative n.");
+                if (n > 30) throw new IllegalArgumentException("Naive recursion is limited to n ≤ 30 (you entered " + n + "). "
+                        + "Each call makes two more calls and the same values are recomputed again and again, so the number of calls grows like 1.618ⁿ: "
+                        + "fib(30) already needs 2,692,537 calls and every extra 1 in n multiplies the work by about 1.6. Use the memoised or bottom-up version for larger n.");
                 job = t -> "fib(" + n + ") = " + Recursion.fibNaive(n, t);
+                note = "Naive recursion is limited to n ≤ 30 because it recomputes the same sub-problems: the number of calls is 2·fib(n+1) − 1, "
+                        + "which grows like 1.618ⁿ. Here it made " + (2 * Recursion.fibBottomUp(n + 1, Tracer.silent()) - 1) + " call(s) for n = " + n + ".";
                 break;
             }
             case "fib-memo": {
@@ -135,14 +177,28 @@ public final class Api {
                 job = t -> "fib(" + n + ") = " + Recursion.fibMemo(n, t);
                 break;
             }
-            case "fib-iter": {
+            case "fib-dp": {
                 final int n = Input.intInRange(arg, "n", 0, 92);
-                job = t -> "fib(" + n + ") = " + Recursion.fibIterative(n, t);
+                job = t -> "fib(" + n + ") = " + Recursion.fibBottomUp(n, t);
                 break;
             }
             case "hanoi": {
-                final int n = Input.intInRange(arg, "number of disks", 1, 20);
-                job = t -> Recursion.hanoi(n, t) + " moves for " + n + " disk(s)";
+                final int n = Input.intInRange(arg, "number of disks", 1, 10);
+                final int from = peg(p.getOr("from", "A"), "source");
+                final int to = peg(p.getOr("to", "C"), "destination");
+                final int via = peg(p.getOr("via", "B"), "auxiliary");
+                if (from == to || from == via || to == via)
+                    throw new IllegalArgumentException("The source, destination and auxiliary pegs must be three different pegs.");
+                job = t -> {
+                    DynamicArray<String> list = t.rec() ? new DynamicArray<String>() : null;
+                    long moves = Recursion.hanoi(n, from, to, via, list, t);
+                    if (list != null) perms[0] = list;
+                    long expected = (1L << n) - 1;
+                    return moves + " moves for " + n + " disk(s) from peg " + "ABC".charAt(from) + " to peg " + "ABC".charAt(to)
+                            + ". Check: 2^" + n + " − 1 = " + expected + (moves == expected ? " ✓" : " ✗");
+                };
+                extraKey = "moves";
+                stepLimit = 4000;
                 break;
             }
             case "power": {
@@ -191,7 +247,7 @@ public final class Api {
                 throw new IllegalArgumentException("Unknown recursive algorithm: " + algo);
         }
 
-        Tracer traced = new Tracer(true, 2500);
+        Tracer traced = new Tracer(true, stepLimit);
         String result = job.run(traced);
 
         long[] times = new long[TIMING_TRIALS];
@@ -203,13 +259,30 @@ public final class Api {
         }
 
         Json j = Json.obj().put("category", "recursion").put("algo", algo).put("arg", arg)
-                .raw("theory", Catalog.get(algo)).put("result", result)
+                .raw("theory", Catalog.get(algo)).put("result", result).put("note", note)
                 .raw("counts", traced.countsJson())
-                .put("timeNs", median(times)).put("trials", TIMING_TRIALS)
+                .put("timeNs", average(times)).put("trials", TIMING_TRIALS)
                 .put("traceOn", true).put("truncated", traced.truncated())
                 .raw("steps", traced.stepsJson());
         if (extraKey != null && perms[0] != null) j.raw(extraKey, Recursion.stringsJson(perms[0], 5040));
         return j.end();
+    }
+
+    /** n for both factorials: 0 is allowed (0! = 1), negatives are rejected, 21! would overflow 64 bits. */
+    private static int factorialArg(String arg) {
+        int n = Input.parseInt(arg, "n");
+        if (n < 0) throw new IllegalArgumentException("Factorial is not defined for negative numbers (you entered " + n + "). Enter a whole number from 0 to 20.");
+        if (n > 20) throw new IllegalArgumentException("n must be at most 20: 21! is too large for a 64-bit number (you entered " + n + ").");
+        return n;
+    }
+
+    /** Peg letter A, B or C to its index 0, 1 or 2. */
+    private static int peg(String s, String what) {
+        String v = s.trim();
+        if (v.equals("A") || v.equals("a")) return 0;
+        if (v.equals("B") || v.equals("b")) return 1;
+        if (v.equals("C") || v.equals("c")) return 2;
+        throw new IllegalArgumentException("The " + what + " peg must be A, B or C.");
     }
 
     @SuppressWarnings("unchecked")
@@ -221,12 +294,16 @@ public final class Api {
         if (!oneOf(kind, DataStructures.KINDS)) throw new IllegalArgumentException("Unknown data structure: " + kind);
         String script = p.require("script", kind.equals("brackets") || kind.equals("expression") ? "some text" : "at least one command");
 
-        DataStructures traced = new DataStructures(true);
+        int capacity = 5;
+        if (kind.equals("stack") || kind.equals("queue") || kind.equals("linear-queue"))
+            capacity = Input.intInRange(p.getOr("capacity", "5"), "Capacity", 1, 20);
+
+        DataStructures traced = new DataStructures(true, capacity);
         traced.run(kind, script);
 
         long[] times = new long[TIMING_TRIALS];
         for (int t = 0; t < TIMING_TRIALS; t++) {
-            DataStructures silent = new DataStructures(false);
+            DataStructures silent = new DataStructures(false, capacity);
             long start = System.nanoTime();
             silent.run(kind, script);
             times[t] = System.nanoTime() - start;
@@ -236,7 +313,7 @@ public final class Api {
         return Json.obj().put("category", "ds").put("algo", kind)
                 .raw("theory", Catalog.get("ds-" + kind)).put("result", traced.summary)
                 .raw("counts", counts)
-                .put("timeNs", median(times)).put("trials", TIMING_TRIALS)
+                .put("timeNs", average(times)).put("trials", TIMING_TRIALS)
                 .put("traceOn", true).put("truncated", traced.stepCount() >= 2000)
                 .raw("steps", traced.stepsJson()).end();
     }
@@ -263,7 +340,7 @@ public final class Api {
         String input = p.getOr("input", "random");
         if (!oneOf(input, new String[]{"random", "sorted", "reversed", "nearly", "few"}))
             throw new IllegalArgumentException("Unknown input type: " + input);
-        int trials = Input.intInRange(p.getOr("trials", "3"), "trials", 1, 7);
+        int trials = Input.intInRange(p.getOr("trials", "3"), "timed runs", 3, 7);
         return Analyzer.run(algos, sizes, input, trials);
     }
 }

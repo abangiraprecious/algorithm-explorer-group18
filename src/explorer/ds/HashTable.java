@@ -55,6 +55,7 @@ public class HashTable<V> {
         return null;
     }
 
+    /** Value stored for key, or null: hash to a bucket, then walk its chain. O(1) average. */
     public V get(String key) {
         int b = indexFor(key);
         lastBucket = b;
@@ -66,12 +67,14 @@ public class HashTable<V> {
         return null;
     }
 
+    /** True if key is stored. O(1) average. */
     public boolean containsKey(String key) {
         int b = indexFor(key);
         for (Entry<V> e = buckets[b]; e != null; e = e.next) if (e.key.equals(key)) return true;
         return false;
     }
 
+    /** Unlinks key from its chain and returns its value, or null. O(1) average. */
     public V remove(String key) {
         int b = indexFor(key);
         lastBucket = b;
@@ -88,6 +91,7 @@ public class HashTable<V> {
         return null;
     }
 
+    /** Doubles the number of buckets and re-inserts every entry. O(n), rare. */
     @SuppressWarnings("unchecked")
     private void resize() {
         Entry<V>[] old = buckets;
