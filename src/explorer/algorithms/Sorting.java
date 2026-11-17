@@ -238,13 +238,13 @@ public final class Sorting {
 
         int i = lo, j = mid + 1;
         for (int k = lo; k <= hi; k++) {
-            String why;
-            if (i > mid) { a[k] = aux[j++]; why = "left half used up"; }
-            else if (j > hi) { a[k] = aux[i++]; why = "right half used up"; }
+            String why = null;
+            if (i > mid) { a[k] = aux[j++]; if (t.on()) why = "left half used up"; }
+            else if (j > hi) { a[k] = aux[i++]; if (t.on()) why = "right half used up"; }
             else {
                 t.comparisons++;
-                if (aux[j] < aux[i]) { why = aux[j] + " < " + aux[i]; a[k] = aux[j++]; }
-                else { why = aux[i] + " ≤ " + aux[j]; a[k] = aux[i++]; } // ≤ keeps it stable
+                if (aux[j] < aux[i]) { if (t.on()) why = aux[j] + " < " + aux[i]; a[k] = aux[j++]; }
+                else { if (t.on()) why = aux[i] + " ≤ " + aux[j]; a[k] = aux[i++]; } // ≤ keeps it stable
             }
             t.writes++;
             if (t.on()) snap(t, "write", "Merge a[" + lo + ".." + hi + "]: write " + a[k] + " to a[" + k + "] (" + why + ")",
