@@ -405,3 +405,7 @@ Precious Abangira Nimmusiima and Isaac Isota led the project. All five members d
 | Group | 18 |
 | Group size | Five students |
 | Reference | Cormen, T. H., Leiserson, C. E., Rivest, R. L. and Stein, C. (2009). *Introduction to Algorithms* (3rd ed.). MIT Press. |
+
+## 13. Report
+
+[View Project Report](<Group18_Algorithm_Explorer_Report>)
