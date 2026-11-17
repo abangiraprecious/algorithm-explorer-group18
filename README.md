@@ -408,4 +408,4 @@ Precious Abangira Nimmusiima and Isaac Isota led the project. All five members d
 
 ## 13. Report
 
-[View Project Report](<Group18_Algorithm_Explorer_Report>)
+[View Project Report](Group18_Algorithm_Explorer_Report.pdf)
