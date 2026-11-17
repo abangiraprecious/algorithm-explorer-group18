@@ -954,9 +954,13 @@
     const out = $('#analysis-out');
     const series = data.series.map((s) => ({ key: s.key, name: s.name, color: SERIES_COLOR[s.key] || '#5b6b80', s }));
     const inputName = { random: 'random', sorted: 'already sorted', reversed: 'reversed', nearly: 'nearly sorted', few: 'few distinct values' }[data.input];
+    const groups = mode !== 'arrays' ? [] : COMPLEXITY_GROUPS.map((g, i) => ({ id: 'chart-group-' + i, title: g.title,
+      series: series.filter((x) => g.keys.indexOf(x.key) >= 0) })).filter((g) => g.series.length);
     let html = '<div class="chart-tools"><label><input type="checkbox" id="logaxes"> Logarithmic axes (straight lines; the slope is the exponent)</label>'
+      + (mode === 'arrays' ? '<label>Plot <select id="an-measure"><option value="ns" selected>running time</option><option value="ops">operations</option></select></label>' : '')
       + (mode === 'arrays' ? '<span>Input: ' + esc(inputName) + ', average of ' + data.trials + ' timed runs</span>' : '<span>Average of ' + data.trials + ' timed runs</span>') + '</div>';
-    html += '<div class="charts"><div class="chart-card" id="chart-ops"></div><div class="chart-card" id="chart-time"></div></div>';
+    if (mode === 'arrays') html += '<div class="charts">' + groups.map((g) => '<div class="chart-card" id="' + g.id + '"></div>').join('') + '</div>';
+    else html += '<div class="charts"><div class="chart-card" id="chart-ops"></div><div class="chart-card" id="chart-time"></div></div>';
 
     // summary table
     html += '<div class="table-wrap"><table class="summary-table"><thead><tr><th>Algorithm</th><th>Theory for this input</th><th>Best fit to your data</th>'
@@ -1000,12 +1004,26 @@
 
     const draw = () => {
       const log = $('#logaxes').checked;
+      if (mode === 'arrays') {
+        const field = $('#an-measure').value;
+        groups.forEach((g) => lineChart($('#' + g.id), g.series, field, {
+          title: g.title, log, fmtY: field === 'ns' ? fmtTime : fmt,
+          sub: field === 'ns' ? 'Running time against n (average of ' + data.trials + ' runs)' : 'Operations against n (comparisons, swaps, writes and calls)' }));
+        return;
+      }
       lineChart($('#chart-ops'), series, 'ops', { title: 'Operations performed', sub: 'Exact count of comparisons, swaps, writes, arithmetic and calls', log, fmtY: fmt });
       lineChart($('#chart-time'), series, 'ns', { title: 'Running time', sub: 'Average measured time', log, fmtY: fmtTime });
     };
     $('#logaxes').addEventListener('change', draw);
+    if ($('#an-measure')) $('#an-measure').addEventListener('change', draw);
     draw();
   }
+
+  const COMPLEXITY_GROUPS = [
+    { title: 'O(n²) sorts', keys: ['bubble', 'selection', 'insertion'] },
+    { title: 'O(n log n) sorts', keys: ['merge', 'quick', 'quick-random', 'heap'] },
+    { title: 'Linear-time sort and searches', keys: ['counting', 'linear', 'binary'] },
+  ];
 
   // small insertion sort for chart layout (kept by hand, like everything else)
   function insertionSorted(arr, keyFn) {
