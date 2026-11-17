@@ -101,6 +101,7 @@ public class SinglyLinkedList {
     }
 
     public int get(int index) {
+        if (size == 0) throw new IllegalStateException("the list is empty");
         if (index < 0 || index >= size)
             throw new IndexOutOfBoundsException("position " + index + " is outside 0.." + (size - 1));
         Node cur = head;

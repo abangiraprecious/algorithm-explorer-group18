@@ -1,51 +1,44 @@
 package explorer.server;
 
-import java.io.UnsupportedEncodingException;
+import explorer.ds.HashTable;
+
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 
-/**
- * Simple query parameter parser for ?action=...&input=...
- */
-public class Params {
+/** Parses "a=1&b=two" form data into our own HashTable. */
+public final class Params {
+    private final HashTable<String> map = new HashTable<String>(16);
 
-    private final Map<String, String> map = new HashMap<>();
-
-    public Params(String rawQuery) {
-        if (rawQuery == null || rawQuery.isEmpty()) {
-            return;
-        }
-        for (String pair : rawQuery.split("&")) {
-            int idx = pair.indexOf('=');
-            if (idx > 0) {
-                String key = decode(pair.substring(0, idx));
-                String value = decode(pair.substring(idx + 1));
-                map.put(key, value);
-            } else if (!pair.isEmpty()) {
-                map.put(decode(pair), "");
+    public Params(String encoded) {
+        if (encoded == null || encoded.length() == 0) return;
+        int start = 0;
+        for (int i = 0; i <= encoded.length(); i++) {
+            if (i == encoded.length() || encoded.charAt(i) == '&') {
+                String pair = encoded.substring(start, i);
+                start = i + 1;
+                if (pair.length() == 0) continue;
+                int eq = pair.indexOf('=');
+                String k = eq < 0 ? pair : pair.substring(0, eq);
+                String v = eq < 0 ? "" : pair.substring(eq + 1);
+                map.put(decode(k), decode(v));
             }
         }
     }
 
-    private String decode(String s) {
-        try {
-            return URLDecoder.decode(s, StandardCharsets.UTF_8.name());
-        } catch (UnsupportedEncodingException e) {
-            return s;
-        }
+    private static String decode(String s) {
+        return URLDecoder.decode(s, StandardCharsets.UTF_8);
     }
 
-    public String get(String key, String defaultValue) {
-        return map.getOrDefault(key, defaultValue);
+    public String get(String key) { return map.get(key); }
+
+    public String require(String key, String what) {
+        String v = map.get(key);
+        if (v == null || v.trim().length() == 0) throw new IllegalArgumentException("Enter " + what + ".");
+        return v;
     }
 
-    public String get(String key) {
-        return map.get(key);
-    }
-
-    public boolean has(String key) {
-        return map.containsKey(key);
+    public String getOr(String key, String fallback) {
+        String v = map.get(key);
+        return v == null || v.length() == 0 ? fallback : v;
     }
 }
